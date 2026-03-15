@@ -36,7 +36,6 @@ Camera::Camera(Camera_Vector3 pos, float _Yaw, float _Pitch)
 const GLfloat scalingFactor = 0.001f;
 
 void Camera::Matrix(float FOVdeg, float near, float far, float aspect, Shader& shader) {
-
 	glm::vec3 front;
 	front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
 	front.y = sin(glm::radians(Pitch));

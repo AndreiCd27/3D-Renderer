@@ -3,6 +3,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include "stl_reader.h" // .stl geometry file reader by sreiter https://github.com/sreiter/stl_reader
+
 #include "shaderClass.h"
 #include "GeometryLoader.h"
 #include "VBO.h"
@@ -92,6 +94,8 @@ public:
 	void configureGameFrame(float FOVdeg, float zNear, float zFar);
 
 	void EngineTerminate();
+
+	void LoadSTLGeomFile(const char *filePath, int R, int G, int B, float scale);
 
 	void DEBUG_showCameraVectors();
 };

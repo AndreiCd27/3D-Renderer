@@ -196,3 +196,38 @@ void Engine3D::EngineTerminate() {
 	//Terminate GLFW
 	glfwTerminate();
 }
+
+void Engine3D::LoadSTLGeomFile(const char* fileName, int R, int G, int B, float scale) {
+	std::vector<float> coords, normals;
+	std::vector<unsigned int> tris, solids;
+
+	try {
+		stl_reader::ReadStlFile(fileName, coords, normals, tris, solids);
+
+		AVertex* vert = new AVertex[tris.size()];
+		int* indicies = new int[tris.size()];
+
+		std::cout <<"Mesh coord count: " << coords.size() << " trig count: " << tris.size()<<"\n";
+		const size_t numTris = tris.size() / 3;
+		for (size_t itri = 0; itri < numTris; ++itri) {
+			//std::cout << "coordinates of triangle " << itri << ": ";
+			for (size_t icorner = 0; icorner < 3; ++icorner) {
+				int coordINDEX = 3 * tris[3 * itri + icorner];
+				int vertexINDEX = 3 * itri + icorner;
+				float* c = &coords[coordINDEX];
+				indicies[vertexINDEX] = vertexINDEX;
+				vert[vertexINDEX] = (this->GetAVertex(c[0]*scale, c[1]*scale, c[2]*scale, R, G, B));
+				//std::cout << "(" << c[0] << ", " << c[1] << ", " << c[2] << ") ";
+			}
+			//std::cout << std::endl;
+		}
+		MeshObj* createdMesh = new MeshObj(vert, tris.size(), indicies, tris.size(), MainScene);
+
+		delete[] vert;
+		delete[] indicies;
+		std::cout << "Mesh created \n";
+	}
+	catch (std::exception& e) {
+		std::cout << e.what() << std::endl;
+	}
+}

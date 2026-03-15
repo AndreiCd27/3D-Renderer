@@ -45,10 +45,12 @@ int main() {
 	for (int i = 0; i < cntOfObj; i++) {
 		AVertex* vert = VERTICES.data();
 		for (int k = 0; k < VERTICES.size(); k++) {
-			vert[k].lx += 50.0f;
+			vert[k].lz -= 50.0f;
 		}
 		pyramids[i] = new MeshObj(vert, vertCount, indicies, indexCount, engine.getScene());
 	}
+
+	engine.LoadSTLGeomFile("BASEmodel.stl", 255, 255, 0, 20.0f);
 
 	////////////////////////////////////////////////////////////////////////////////
 
@@ -59,7 +61,6 @@ int main() {
 	//engine.setupInstanceVBO(cntOfObj);
 
 	glEnable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
 
 	float _sceneRotationDEG = 0.0f;
 	float _deltaTimeForTIMER = 1.0f / 2.0f;

@@ -175,6 +175,7 @@
     <ClInclude Include="Engine3D.h" />
     <ClInclude Include="GeometryLoader.h" />
     <ClInclude Include="shaderClass.h" />
+    <ClInclude Include="stl_reader.h" />
     <ClInclude Include="VAO.h" />
     <ClInclude Include="VBO.h" />
   </ItemGroup>

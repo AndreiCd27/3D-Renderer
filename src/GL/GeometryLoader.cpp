@@ -9,6 +9,7 @@ const GLfloat scalingFactor = 1.0f;
 
 MeshObj::MeshObj(AVertex * vertices, int VertexNumber, int* indicies, int VertIndexNumber, Scene* _scene) {
 	scene = _scene;
+
 	VertexStorage& vertexStoreLocation = scene->getVertStoreLocation();
 	int vertIndiciesCount = (int)vertexStoreLocation.WorldVertices.size();
 	for (int i = 0; i < VertexNumber; i++) {
