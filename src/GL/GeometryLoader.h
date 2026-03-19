@@ -4,8 +4,6 @@
 #include <vector>
 #include "Camera.h"
 
-#define DIVISION_COUNT 2
-
 #define TILE_MAXSCALE_FACTOR 14
 #define MAX_TILE_LEVEL 14
 #define START_TILE_LEVEL 10
@@ -21,6 +19,10 @@ struct AVertex { //48 bytes
 	float r, g, b;
 	float nx=0.0f, ny=0.0f, nz=0.0f; //normal vector
 	float meshID=0.0f;
+};
+
+struct AColor3 {
+	int R, G, B;
 };
 
 class VertexStorage {
@@ -51,11 +53,12 @@ public:
 	AVector3 Rotation; // Rotation in degrees for X,Y,Z axis
 	AVector3 Size; // Scale Vector for X,Y,Z axis
 	AVector3 Position; // Translate Vector for X,Y,Z axis
+	AColor3 Color;
 
 	void UpdVectors(); // Call this function whenever you want to update the verticies with Rotation and Size
 
 	MeshObj(const std::vector<AVertex>& vertices, int VertexNumber, const std::vector<int>& indicies, int VertIndexNumber, Scene* _scene);
-	~MeshObj() = default;
+	~MeshObj() { localVertices.clear(); vertIndicies.clear(); std::cout << "D -> Mesh \n"; };
 	inline void setMeshID(int _meshID);
 	inline int getSize() { return vertIndicies.size(); };
 };
@@ -66,10 +69,10 @@ private:
 	Tile* Parent;
 	uint16_t TileX, TileZ;
 	uint16_t Level = 0;
-	std::vector<int> meshIDs;
 public:
 
-	Tile* Divisions[DIVISION_COUNT][DIVISION_COUNT];
+	std::vector<int> meshIDs;
+	Tile* Divisions[2][2];
 
 	Tile(Tile* _Parent, uint16_t _TileX, uint16_t _TileZ, uint16_t _Level);
 	~Tile();
@@ -79,11 +82,13 @@ public:
 class Scene {
 private:
 
-	Tile* WorldRoot = nullptr;
 	std::vector<int> meshIDs;
 	std::vector<MeshObj*> Meshes;
 	VertexStorage vertStoreLocation;
 public:
+
+	Tile* WorldRoot = nullptr;
+
 	Scene();
 	~Scene();
 	void deleteWorldRoot();

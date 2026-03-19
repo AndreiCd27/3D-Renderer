@@ -59,7 +59,7 @@ private:
 public:
 
 	Engine3D() = default;
-	~Engine3D() = default;
+	~Engine3D() { EngineTerminate(); };
 	// SETERS
 
 	int setupGLFW(const int WINDOW_WIDTH, const int WINDOW_HEIGHT, const char* WINDOW_TITLE);
@@ -107,17 +107,21 @@ public:
 
 	void initGameFrame();
 
-	void configureGameFrame(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO);
+	void shadowPass();
+
+	void renderPass(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO);
 
 	//void ConfigureShaderAndMatrices(AVector3& pos);
 	//void RenderShadowMap(const unsigned int SHADOW_WIDTH, const unsigned int SHADOW_HEIGHT);
 
 	void EngineTerminate();
 
-	MeshObj* LoadSTLGeomFile(const char *filePath, int R, int G, int B, float scale);
+	MeshObj* LoadSTLGeomFile(const char *filePath, float scale);
 
 	MeshObj* CreateMesh(const std::vector<AVertex>& vertices, int VertexNumber, const std::vector<int>& indicies, int VertIndexNumber);
 	MeshObj* CreatePrism(const std::vector<AVertex>& vertices, int VertexNumber, float height);
+	MeshObj* CreateRectPrism(double cx, double cy, double cz, float length, float width, float height);
+	MeshObj* CreateCube(double cx, double cy, double cz, float length);
 
 	void DEBUG_showCameraVectors();
 };

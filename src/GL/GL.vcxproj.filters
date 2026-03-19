@@ -65,12 +65,6 @@
     <None Include="default.frag">
       <Filter>Resource Files\Shaders</Filter>
     </None>
-    <None Include="shadowMap.vert">
-      <Filter>Resource Files\Shaders</Filter>
-    </None>
-    <None Include="shadowMap.frag">
-      <Filter>Resource Files\Shaders</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EBO.h">
@@ -100,8 +94,5 @@
     <ClInclude Include="Texture.h">
       <Filter>Header Files\OBJ_H</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="residualcode.txt" />
   </ItemGroup>
 </Project>

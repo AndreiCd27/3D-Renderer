@@ -1,5 +1,6 @@
 
 #include "Engine3D.h"
+#include <cstring>
 
 
 void Engine3D::setCamera(double posX, double posY, double posZ) {
@@ -55,9 +56,9 @@ int Engine3D::setupGLFW(const int WINDOW_WIDTH, const int WINDOW_HEIGHT, const c
 }
 
 const int Engine3D::getDrawStyle(const char* style) {
-	if (style == "static") return GL_STATIC_DRAW;
-	if (style == "stream") return GL_STREAM_DRAW;
-	if (style == "dynamic") return GL_DYNAMIC_DRAW;
+	if (strcmp(style, "static") == 0) return GL_STATIC_DRAW;
+	if (strcmp(style, "stream") == 0) return GL_STREAM_DRAW;
+	if (strcmp(style, "dynamic") == 0) return GL_DYNAMIC_DRAW;
 	return GL_STATIC_DRAW;
 }
 
@@ -148,13 +149,13 @@ void Engine3D::initGameFrame() {
 	glClearColor(backgroundColor.R, backgroundColor.G, backgroundColor.B, backgroundColor.A);
 }
 
+
 void Engine3D::registerCameraInput(float FOVdeg, float zNear, float zFar) {
 	UserCamera.Inputs(window);
 	UserCamera.Matrix(FOVdeg, zNear, zFar, windowAspectRatio, shaderProgram);
 }
 
-void Engine3D::configureGameFrame(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO) {
-
+void Engine3D::shadowPass() {
 	glBindFramebuffer(GL_FRAMEBUFFER, depthTextureObject.FBO_ID);
 	glViewport(0, 0, 2048, 2048);
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -173,19 +174,45 @@ void Engine3D::configureGameFrame(float FOVdeg, float zNear, float zFar, bool UP
 	// The Sun is looking from it's Position to the center (0,0,0);
 	glUniform3f(lightDirUnifLoc, SunCamera.Position.x, SunCamera.Position.y, SunCamera.Position.z);
 
-	if (UPDATE_VBO) {
-		glBindBuffer(GL_ARRAY_BUFFER, VBO_1.ID);
-		auto& VBOdata = MainScene.getVertStoreLocation().getWorldVertices();
-		glBufferSubData(GL_ARRAY_BUFFER, 0, VBOdata.size() * sizeof(AVertex), VBOdata.data());
-	}
-
-
 	int indiciesSize = MainScene.getVertStoreLocation().getVertIndicies().size();
 
 	glDrawElements(GL_TRIANGLES, indiciesSize, GL_UNSIGNED_INT, 0);
-
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glDrawBuffer(GL_BACK);
+
+}
+
+void Engine3D::renderPass(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO) {
+
+	
+	if (UPDATE_VBO) {
+		glBindBuffer(GL_ARRAY_BUFFER, VBO_1.ID);
+		auto& VBOdata = MainScene.getVertStoreLocation().getWorldVertices();
+		size_t VBOsize = VBOdata.size();
+		if (VBOsize > VBO_1.Capacity) {
+			VBO_1.Capacity *= 2;
+			glBufferData(GL_ARRAY_BUFFER, VBO_1.Capacity * sizeof(AVertex), VBOdata.data(), GL_DYNAMIC_DRAW);
+		} else {
+			glBufferData(GL_ARRAY_BUFFER, VBO_1.Capacity * sizeof(AVertex), NULL, GL_DYNAMIC_DRAW);
+			glBufferSubData(GL_ARRAY_BUFFER, 0, VBOsize * sizeof(AVertex), VBOdata.data());
+		}
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_1.ID);
+		auto& EBOdata = MainScene.getVertStoreLocation().getVertIndicies();
+		size_t EBOsize = EBOdata.size();
+		if (EBOsize > EBO_1.Capacity) {
+			EBO_1.Capacity *= 2;
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, EBO_1.Capacity * sizeof(GLuint), EBOdata.data(), GL_DYNAMIC_DRAW);
+		}
+		else {
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, EBO_1.Capacity * sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
+			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, EBOdata.size() * sizeof(GLuint), EBOdata.data());
+		}
+
+		//std::cout << EBOdata.size() << " " << VBOdata.size() << " INDICIES | VERTEX LOADS \n";
+	}
+
+	int indiciesSize = MainScene.getVertStoreLocation().getVertIndicies().size();
+
 	glViewport(0, 0, windowWidth, windowHeight);
 	//Clear the BACK BUFFER and assign our color to it
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -213,6 +240,12 @@ void Engine3D::configureGameFrame(float FOVdeg, float zNear, float zFar, bool UP
 }
 
 void Engine3D::EngineTerminate() {
+
+	//Delete meshes
+	for (auto& MeshObj : MainScene.getMeshes()) {
+		delete MeshObj;
+	}
+
 	//Delete our VAOs, VBOs, EBOs
 	VAO_1.Delete();
 	VBO_1.Delete();
@@ -230,7 +263,7 @@ void Engine3D::EngineTerminate() {
 	glfwTerminate();
 }
 
-MeshObj* Engine3D::LoadSTLGeomFile(const char* fileName, int R, int G, int B, float scale) {
+MeshObj* Engine3D::LoadSTLGeomFile(const char* fileName, float scale) {
 	std::vector<float> coords, normals;
 	std::vector<unsigned int> tris, solids;
 
@@ -253,8 +286,7 @@ MeshObj* Engine3D::LoadSTLGeomFile(const char* fileName, int R, int G, int B, fl
 				int vertexINDEX = 3 * itri + icorner;
 				float* c = &coords[coordINDEX];
 				indicies.push_back(vertexINDEX);
-				vert.push_back(this->GetAVertex(c[0]*scale, c[1]*scale, c[2]*scale, 
-					R + (c[0] * scale * 10 / 2), G - (c[2] * scale * 10 / 4), B + (c[2]*scale * 10)));
+				vert.push_back(this->GetAVertex(c[0]*scale, c[1]*scale, c[2]*scale, 200, 200, 200));
 				//std::cout << "(" << c[0] << ", " << c[1] << ", " << c[2] << ") ";
 			}
 			//std::cout << std::endl;
@@ -262,7 +294,7 @@ MeshObj* Engine3D::LoadSTLGeomFile(const char* fileName, int R, int G, int B, fl
 
 		std::cout << "Mesh created \n";
 
-		return new MeshObj(vert, (int)tris.size(), indicies, (int)tris.size(), &MainScene);;
+		return new MeshObj(vert, (int)tris.size(), indicies, (int)tris.size(), &MainScene);
 	}
 	catch (std::exception& e) {
 		std::cout << e.what() << std::endl;
@@ -330,4 +362,18 @@ MeshObj* Engine3D::CreatePrism(const std::vector<AVertex>& vertices, int VertexN
 	}
 
 	return new MeshObj(V, VertexNumber*2, indicies, indicies.size(), &MainScene);
+}
+
+MeshObj* Engine3D::CreateRectPrism(double cx, double cy, double cz, float length, float width, float height) {
+	std::vector<AVertex> v;
+	v.resize(4);
+	v[0] = GetAVertex(cx - length / 2.0f, cy - height / 2.0f, cz - width / 2.0f, 200, 200, 200);
+	v[1] = GetAVertex(cx - length / 2.0f, cy - height / 2.0f, cz + width / 2.0f, 200, 200, 200);
+	v[2] = GetAVertex(cx + length / 2.0f, cy - height / 2.0f, cz + width / 2.0f, 200, 200, 200);
+	v[3] = GetAVertex(cx + length / 2.0f, cy - height / 2.0f, cz - width / 2.0f, 200, 200, 200);
+	return CreatePrism(v, 4, height);
+}
+
+MeshObj* Engine3D::CreateCube(double cx, double cy, double cz, float length) {
+	return CreateRectPrism(cx, cy, cz, length, length, length);
 }

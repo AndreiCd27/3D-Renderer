@@ -1,5 +1,6 @@
 #include "GeometryLoader.h"
 #include <iostream>
+#include <bitset>
 
 int TOTAL_C_COUNT = 0;
 int TOTAL_D_COUNT = 0;
@@ -49,8 +50,12 @@ MeshObj::MeshObj(const std::vector<AVertex>& vertices, int VertexNumber, const s
 	Rotation = AVector3(0.0f, 0.0f, 0.0f);
 	Size = AVector3(1.0f, 1.0f, 1.0f);
 	Position = AVector3(0.0f, 0.0f, 0.0f);
+	Color = { 200, 200, 200 };
 
 	center = { 0.0f };
+	center.r = (float)Color.R / 255.0f;
+	center.g = (float)Color.G / 255.0f;
+	center.b = (float)Color.B / 255.0f;
 
 	VertexStorage& vertexStoreLocation = scene->getVertStoreLocation();
 	int vertIndiciesCount = (int)vertexStoreLocation.WorldVertices.size();
@@ -72,10 +77,45 @@ MeshObj::MeshObj(const std::vector<AVertex>& vertices, int VertexNumber, const s
 	}
 	CalculateSurfaceNormals(VertIndexNumber, vertexStoreLocation.WorldVertices, this->vertIndicies);
 	scene->AssignMesh(this);
+
+	double cxd = (double)center.lx + (double)center.hx;
+	double czd = (double)center.lz + (double)center.hz;
+	unsigned int cx = abs( cxd );
+	unsigned int cz = abs( czd );
+	unsigned int cBitsX = 0x80000000;
+	unsigned int cBitsZ = 0x80000000;
+	cxd < 0 ? cBitsX = cBitsX - cx : cBitsX = cx & cBitsX;
+	czd < 0 ? cBitsZ = cBitsZ - cz : cBitsZ = cz & cBitsZ;
+
+	// Start at bit START_TILE_LEVEL
+	// Continue shifting until you reach MAX_TILE_LEVEL
+	int lvl = START_TILE_LEVEL;
+	unsigned int bin = 1 << (32 - START_TILE_LEVEL);
+	Tile* tile = scene->WorldRoot;
+	while (lvl < MAX_TILE_LEVEL) {
+
+		short int bitX = (cBitsX & bin) >> (32 - lvl);
+		short int bitZ = (cBitsZ & bin) >> (32 - lvl);
+
+		tile = tile->Divisions[bitX][bitZ];
+
+		lvl++;
+		bin = bin >> 1;
+	}
+	if (tile) { 
+		tile->meshIDs.push_back(this->meshID); 
+	}
+	else { 
+		std::cout << "tile not found \n"; 
+	}
 }
 
 void MeshObj::UpdVectors() {
 	if (scene == nullptr) { std::cerr << "Mesh does not belong to any scene"; return; }
+
+	center.r = (float)Color.R / 255.0f;
+	center.g = (float)Color.G / 255.0f;
+	center.b = (float)Color.B / 255.0f;
 
 	glm::mat4 transf = glm::mat4(1.0f);
 
@@ -112,6 +152,11 @@ void MeshObj::UpdVectors() {
 		worldver.lz = (float)(finalZ - (double)worldver.hz);
 
 		worldver.y = (float)finalY;
+
+		worldver.r = center.r;
+		worldver.g = center.g;
+		worldver.b = center.b;
+
 	}
 
 	CalculateSurfaceNormals(vertIndicies.size(), WrldVertices, this->vertIndicies);
@@ -123,8 +168,8 @@ Tile::Tile(Tile* _Parent, uint16_t _TileX, uint16_t _TileZ, uint16_t _Level) {
 	TOTAL_C_COUNT++;
 	//std::cout << "Created: " << TOTAL_C_COUNT << "\n";
 	Parent = _Parent; TileX = _TileX; TileZ = _TileZ; Level = _Level;
-	for (uint16_t i = 0; i < DIVISION_COUNT; i++) {
-		for (uint16_t j = 0; j < DIVISION_COUNT; j++) {
+	for (uint16_t i = 0; i < 2; i++) {
+		for (uint16_t j = 0; j < 2; j++) {
 			Divisions[i][j] = nullptr;
 			if (_Level < MAX_TILE_LEVEL) Tile::DivideTile(i, j);
 		}
@@ -139,15 +184,15 @@ Tile::~Tile() {
 	//std::cout << "D tile " << Level << "\n";
 	TOTAL_D_COUNT++;
 	//std::cout << "Destroyed: " << TOTAL_D_COUNT<<"\n";
-	for (int i = 0; i < DIVISION_COUNT; i++) {
-		for (int j = 0; j < DIVISION_COUNT; j++) {
+	for (int i = 0; i < 2; i++) {
+		for (int j = 0; j < 2; j++) {
 			delete Divisions[i][j];
 		}
 	}
 }
 
 void Tile::DivideTile(uint16_t i, uint16_t j) {
-	if (i >= DIVISION_COUNT || j >= DIVISION_COUNT) return;
+	if (i >= 2 || j >= 2) return;
 	if (Divisions[i][j] != nullptr) {
 		delete Divisions[i][j];
 	}

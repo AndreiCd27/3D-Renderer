@@ -22,10 +22,10 @@ int main() {
 
 	// HERE WE CREATE OUR OBJECTS /////////////////////////////////////////////////
 
-	VERTICES.push_back(engine.GetAVertex(-250.0f, -50.0f, -250.0f, 0, 255, 0));
-	VERTICES.push_back(engine.GetAVertex(-250.0f, -50.0f, 250.0f, 0, 255, 0));
-	VERTICES.push_back(engine.GetAVertex(250.0f, -50.0f, 250.0f, 0, 255, 0));
-	VERTICES.push_back(engine.GetAVertex(250.0f, -50.0f, -250.0f, 0, 255, 0));
+	VERTICES.push_back(engine.GetAVertex(-300.0f, -50.0f, -300.0f, 0, 255, 0));
+	VERTICES.push_back(engine.GetAVertex(-300.0f, -50.0f, 200.0f, 0, 255, 0));
+	VERTICES.push_back(engine.GetAVertex(200.0f, -50.0f, 200.0f, 0, 255, 0));
+	VERTICES.push_back(engine.GetAVertex(200.0f, -50.0f, -300.0f, 0, 255, 0));
 
 	MeshObj* plane = engine.CreatePrism(VERTICES, 4, 50.0f);
 
@@ -49,12 +49,16 @@ int main() {
 
 	VERTICES.clear();
 
-	MeshObj * humanMesh = engine.LoadSTLGeomFile("BASEmodel.stl", 100, 255, 0, 20.0f);
+	MeshObj * humanMesh = engine.LoadSTLGeomFile("BASEmodel.stl", 20.0f);
 	if (humanMesh) {
 		std::cout << "Created: Human \n";
 		humanMesh->Position = AVector3(-60.0f, 50.0f, 5.0f);
 		humanMesh->UpdVectors();
 	}
+
+	MeshObj* cube = engine.CreateCube(0.0f, 0.0f, 0.0f, 80.0f);
+	cube->Color = { 255, 255, 0 };
+	cube->UpdVectors();
 
 	////////////////////////////////////////////////////////////////////////////////
 
@@ -77,11 +81,12 @@ int main() {
 	double prevTime = glfwGetTime();
 
 	int ROT = 0;
+	long long int frameCounter = 0;
 
 	// MAIN GAME LOOP
 	while (!engine.windowShouldClose()) {
-		
-		engine.initGameFrame();
+
+		engine.initGameFrame(); // setting up the background color
 
 		// TIMER (global) ////////////
 		double currentTime = glfwGetTime();
@@ -93,8 +98,8 @@ int main() {
 					(ROT % 360 - 180) * 1.0f, (-ROT % 360 - 180) *1.0f);
 				humanMesh->UpdVectors();
 			}
-			double sinROT = sin((double)ROT / 512.0f);
-			double cosROT = cos((double)ROT / 512.0f);
+			double sinROT = sin((double)ROT / 1024.0f);
+			double cosROT = cos((double)ROT / 1024.0f);
 			double sinYAW = sin((double)ROT / 1024.0f);
 			double cosYAW = cos((double)ROT / 1024.0f);
 			engine.getCamera(true).Position = { 100.0f * cosROT, 100.0f * sinROT, 50.0f };
@@ -104,14 +109,12 @@ int main() {
 				(lightReflactance + sunsetCoef / 2.0f) * 0.5f * (lightReflactance), 
 				lightReflactance, 1.0f);
 			ROT+=4;
+			frameCounter++;
 		}
 
-		//engine.setupShadowMap(1024, 1024);
-
-		engine.configureGameFrame(45.0f, 0.1f, 1000.0f, true);
+		engine.shadowPass();
+		engine.renderPass(45.0f, 0.1f, 1000.0f, true);
 	}
-
-	engine.EngineTerminate();
 
 	return 0;
 }

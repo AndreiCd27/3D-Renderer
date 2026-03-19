@@ -29,21 +29,21 @@ void main()
 
 	vec3 ambient = vec3(0.05, 0.05, 0.05);
 
-	float B = max( 0.0001, 0.001 * ( 1.0 - DOT ) ); 
+	float B = 0.0; //max( 0.0001, 0.001 * (1.0 - DOT) ); 
 
 	float visibility = 0.0;
 
 	vec2 dtex = 1.0 / textureSize(shadowMap, 0);
 
-	for (float xi = -1.0; xi <= 1.0; xi++) {
-		for (float yi = -1.0; yi <= 1.0; yi++) {
+	for (float xi = -2.0; xi <= 2.0; xi++) {
+		for (float yi = -2.0; yi <= 2.0; yi++) {
 			vec2 dxy = vec2(xi, yi) * dtex;
 			shadowFactor = texture(shadowMap, projCoords.xy + dxy).r;
 			visibility += ( (projCoords.z - B > shadowFactor) ? 0.5 : 1.0 );
 		}
 	}
 
-	visibility /= 9.0;
+	visibility /= 25.0;
 
 	
 

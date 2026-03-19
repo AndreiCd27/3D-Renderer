@@ -7,6 +7,7 @@
 class VBO {
 public:
 	GLuint ID;
+	size_t Capacity = 0;
 	VBO() { std::cout << "C -> VBO \n"; };
 
 	void Setup(AVertex* vertices, GLsizeiptr size, const int drawStyle);

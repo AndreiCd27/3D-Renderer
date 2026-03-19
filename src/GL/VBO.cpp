@@ -4,6 +4,7 @@ void VBO::Setup(AVertex* vertices, GLsizeiptr size, const int drawStyle) {
 	glGenBuffers(1, &ID);
 	glBindBuffer(GL_ARRAY_BUFFER, ID);
 	glBufferData(GL_ARRAY_BUFFER, size, vertices, drawStyle);
+	Capacity = size;
 }
 void VBO::Setup(int* vertices, GLsizeiptr size, const int drawStyle) {
 	glGenBuffers(1, &ID);
