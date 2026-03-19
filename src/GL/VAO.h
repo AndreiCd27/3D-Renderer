@@ -6,8 +6,9 @@
 class VAO {
 public:
 	GLuint ID;
-	VAO();
+	VAO() { std::cout << "C -> VAO \n"; };
 
+	void Setup();
 	void LinkVBO(VBO& VBO, GLuint layout, GLuint numComp, GLenum type, GLsizeiptr stride, void* offset);
 	void Bind();
 	void Unbind();

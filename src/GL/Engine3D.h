@@ -11,6 +11,7 @@
 #include "EBO.h"
 #include "VAO.h"
 #include "Camera.h"
+#include "Texture.h"
 
 //bool _Engine3D_Started = false;
 
@@ -18,8 +19,11 @@ class Engine3D {
 private:
 
 	// Initialize a scene and a camera
-	Camera* UserCamera = nullptr;
-	Scene* MainScene = nullptr;
+	Camera UserCamera = Camera(AVector3(0.0f, 0.0f, 0.0f),0.0f, 0.0f);
+	Camera SunCamera = Camera(AVector3(0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
+	Scene MainScene;
+
+	Texture depthTextureObject;
 
 	// GLFW window object
 	GLFWwindow* window = nullptr;
@@ -28,12 +32,16 @@ private:
 	float windowAspectRatio = 0.0f;
 
 	// Shader
-	Shader* shaderProgram = nullptr;
-	VAO* VAO_1 = nullptr;
-	VBO* VBO_1 = nullptr;
-	EBO* EBO_1 = nullptr;
+	Shader shaderProgram;
+	VAO VAO_1;
+	VBO VBO_1;
+	EBO EBO_1;
 
 	GLuint instanceVBO;
+
+	GLuint shadowMapLocation;
+
+	GLuint lightDirUnifLoc;
 
 	// Stores projection matrices of meshes relative to the camera
 	std::vector<glm::mat4> modelMatrices;
@@ -51,33 +59,41 @@ private:
 public:
 
 	Engine3D() = default;
-	~Engine3D();
+	~Engine3D() = default;
 	// SETERS
-	void setScene();
-	void setCamera(double posX, double posY, double posZ);
-
-	void setCamera(double posX, double posY, double posZ, float yaw, float pitch);
 
 	int setupGLFW(const int WINDOW_WIDTH, const int WINDOW_HEIGHT, const char* WINDOW_TITLE);
 
-	void setupShaders();
+	void setCamera(double posX, double posY, double posZ);
+	void setSunCamera(double posX, double posY, double posZ);
+
+	void setCamera(double posX, double posY, double posZ, float yaw, float pitch);
+
+	const int getDrawStyle(const char* style);
+
+	void setupShaders(const int drawStyle);
 
 	void setupInstanceVBO(const int cntOfObj);
+
+	//void setupShadowMap(const unsigned int SHADOW_WIDTH, const unsigned int SHADOW_HEIGHT);
 
 	inline void setBackground(float R, float G, float B, float A) { backgroundColor = { R,G,B,A }; };
 
 	// GETTERS
-	Camera* getCamera();
+	Camera& getCamera(bool Sun);
 
 	Scene* getScene();
 
 	inline int windowShouldClose() { return glfwWindowShouldClose(window); };
-	inline Shader* getShader() { return shaderProgram; };
+	inline Shader& getShader() { return shaderProgram; };
 
 	inline AVertex GetAVertex(double x, double y, double z, int r, int g, int b) {
 		float xhigh = (float)x; float xlow = (float)(x - (double)xhigh);
 		float zhigh = (float)z; float zlow = (float)(z - (double)zhigh);
-		return { xlow, xhigh, zlow, zhigh, (float)y, (float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f };
+		return { xlow, xhigh, zlow, zhigh, (float)y, 
+			(float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, 
+			0.0f, 0.0f, 0.0f, 0.0f 
+		};
 	}
 	/*
 	inline AVertex GetAVertex(float x, float y, float z, int r, int g, int b) {
@@ -91,11 +107,17 @@ public:
 
 	void initGameFrame();
 
-	void configureGameFrame(float FOVdeg, float zNear, float zFar);
+	void configureGameFrame(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO);
+
+	//void ConfigureShaderAndMatrices(AVector3& pos);
+	//void RenderShadowMap(const unsigned int SHADOW_WIDTH, const unsigned int SHADOW_HEIGHT);
 
 	void EngineTerminate();
 
-	void LoadSTLGeomFile(const char *filePath, int R, int G, int B, float scale);
+	MeshObj* LoadSTLGeomFile(const char *filePath, int R, int G, int B, float scale);
+
+	MeshObj* CreateMesh(const std::vector<AVertex>& vertices, int VertexNumber, const std::vector<int>& indicies, int VertIndexNumber);
+	MeshObj* CreatePrism(const std::vector<AVertex>& vertices, int VertexNumber, float height);
 
 	void DEBUG_showCameraVectors();
 };

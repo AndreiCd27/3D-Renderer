@@ -14,11 +14,13 @@ class Tile;
 class Scene;
 class MeshObj;
 
-struct AVertex {
+struct AVertex { //48 bytes
 	float lx, hx;
 	float lz, hz;
 	float y;
 	float r, g, b;
+	float nx=0.0f, ny=0.0f, nz=0.0f; //normal vector
+	float meshID=0.0f;
 };
 
 class VertexStorage {
@@ -35,13 +37,24 @@ public:
 
 class MeshObj {
 private:
+	AVertex center;
+
+	std::vector<AVertex> localVertices;
 
 	std::vector<GLuint> vertIndicies;
-	int meshID = -1; //stays -1 until it is assigned to a scene 
-	Scene* scene = nullptr; // which scene it belongs to
-public:
 
-	MeshObj(AVertex* vertices, int VertexNumber, int* indicies, int VertIndexNumber, Scene* _scene);
+	int verLocation;
+
+	int meshID = -1; // Stays -1 until it is assigned to a scene 
+	Scene* scene; // Which scene it belongs to
+public:
+	AVector3 Rotation; // Rotation in degrees for X,Y,Z axis
+	AVector3 Size; // Scale Vector for X,Y,Z axis
+	AVector3 Position; // Translate Vector for X,Y,Z axis
+
+	void UpdVectors(); // Call this function whenever you want to update the verticies with Rotation and Size
+
+	MeshObj(const std::vector<AVertex>& vertices, int VertexNumber, const std::vector<int>& indicies, int VertIndexNumber, Scene* _scene);
 	~MeshObj() = default;
 	inline void setMeshID(int _meshID);
 	inline int getSize() { return vertIndicies.size(); };

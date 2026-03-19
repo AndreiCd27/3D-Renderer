@@ -1,7 +1,7 @@
 #include <iostream>
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
+const int WINDOW_WIDTH = 1200;
+const int WINDOW_HEIGHT = 800;
 const char* WINDOW_TITLE = "window";
 const float aspectRatio = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
 
@@ -10,81 +10,105 @@ const float aspectRatio = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
 // Vertices coordinates
 std::vector<AVertex> VERTICES;
 
-
-// Indices for vertices order
-int indicies[] =
-{
-	0, 1, 2,
-	0, 2, 3,
-	0, 1, 4,
-	1, 2, 4,
-	2, 3, 4,
-	3, 0, 4
-};
-
 int main() {
 
 	Engine3D engine;
+	std::cout << "Engine initialized \n";
+
 	int success = engine.setupGLFW(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
 	if (!success) { std::cerr << "Error at setup \n"; return -1; }
 
-	engine.setScene();
+	engine.setBackground(0.2f, 0.3f, 0.8f, 1.0f);
 
 	// HERE WE CREATE OUR OBJECTS /////////////////////////////////////////////////
 
-	VERTICES.push_back(engine.GetAVertex(-25.0f, 0.0f, -25.0f, 255, 0, 0));
-	VERTICES.push_back(engine.GetAVertex(-25.0f, 0.0f, 25.0f, 0, 0, 0));
-	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, 25.0f, 0, 255, 0));
-	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, -25.0f, 0, 0, 0));
-	VERTICES.push_back(engine.GetAVertex(0.0f, 30.0f, 0.0f, 0, 0, 255));
+	VERTICES.push_back(engine.GetAVertex(-250.0f, -50.0f, -250.0f, 0, 255, 0));
+	VERTICES.push_back(engine.GetAVertex(-250.0f, -50.0f, 250.0f, 0, 255, 0));
+	VERTICES.push_back(engine.GetAVertex(250.0f, -50.0f, 250.0f, 0, 255, 0));
+	VERTICES.push_back(engine.GetAVertex(250.0f, -50.0f, -250.0f, 0, 255, 0));
 
-	int vertCount = VERTICES.size();
-	int indexCount = sizeof(indicies) / sizeof(int);
-	constexpr int cntOfObj = 16;
-	MeshObj* pyramids[cntOfObj];
-	for (int i = 0; i < cntOfObj; i++) {
-		AVertex* vert = VERTICES.data();
-		for (int k = 0; k < VERTICES.size(); k++) {
-			vert[k].lz -= 50.0f;
-		}
-		pyramids[i] = new MeshObj(vert, vertCount, indicies, indexCount, engine.getScene());
+	MeshObj* plane = engine.CreatePrism(VERTICES, 4, 50.0f);
+
+	VERTICES.clear();
+
+	VERTICES.push_back(engine.GetAVertex(-25.0f, 0.0f, -25.0f, 0, 0, 255));
+	VERTICES.push_back(engine.GetAVertex(-25.0f, 0.0f, 25.0f, 0, 0, 255));
+	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, 25.0f, 0, 0, 255));
+	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, -25.0f, 0, 0, 255));
+
+	MeshObj* plane2 = engine.CreatePrism(VERTICES, 4, 80.0f);
+
+	VERTICES.clear();
+
+	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, 25.0f, 255, 0, 255));
+	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, 75.0f, 255, 0, 255));
+	VERTICES.push_back(engine.GetAVertex(75.0f, 0.0f, 75.0f, 255, 0, 255));
+	VERTICES.push_back(engine.GetAVertex(75.0f, 0.0f, 25.0f, 255, 0, 255));
+
+	MeshObj* plane3 = engine.CreatePrism(VERTICES, 4, 50.0f);
+
+	VERTICES.clear();
+
+	MeshObj * humanMesh = engine.LoadSTLGeomFile("BASEmodel.stl", 100, 255, 0, 20.0f);
+	if (humanMesh) {
+		std::cout << "Created: Human \n";
+		humanMesh->Position = AVector3(-60.0f, 50.0f, 5.0f);
+		humanMesh->UpdVectors();
 	}
-
-	engine.LoadSTLGeomFile("BASEmodel.stl", 255, 255, 0, 20.0f);
 
 	////////////////////////////////////////////////////////////////////////////////
 
+	std::cout << "Meshes constructed \n";
+
 	engine.setCamera(0.0f, 80.0f, 120.0f); //Set camera to this position
+	engine.setSunCamera(0.0f, 100.0f, 1.0f);
 
-	engine.setupShaders(); //Uses Camera Class and Mesh Instances
+	engine.setupShaders(engine.getDrawStyle("dynamic")); //Uses Camera Class and Mesh Instances
 
+	std::cout << "Shaders created\n";
+	
 	//engine.setupInstanceVBO(cntOfObj);
 
-	glEnable(GL_DEPTH_TEST);
+	
+	//glDisable(GL_CULL_FACE);
 
 	float _sceneRotationDEG = 0.0f;
-	float _deltaTimeForTIMER = 1.0f / 2.0f;
+	float _deltaTimeForTIMER = 1.0f / 10.0f;
 	double prevTime = glfwGetTime();
+
+	int ROT = 0;
 
 	// MAIN GAME LOOP
 	while (!engine.windowShouldClose()) {
 		
 		engine.initGameFrame();
 
-		//engine.registerCameraInput(45.0f, 0.1f, 1000.0f);
-
 		// TIMER (global) ////////////
 		double currentTime = glfwGetTime();
 		if (currentTime - prevTime >= _deltaTimeForTIMER) {
 			//engine.DEBUG_showCameraVectors();
 			prevTime = currentTime;
+			if (humanMesh) {
+				humanMesh->Rotation = AVector3((-(int)sqrt(ROT*20) % 360 - 180) * 1.0f, 
+					(ROT % 360 - 180) * 1.0f, (-ROT % 360 - 180) *1.0f);
+				humanMesh->UpdVectors();
+			}
+			double sinROT = sin((double)ROT / 512.0f);
+			double cosROT = cos((double)ROT / 512.0f);
+			double sinYAW = sin((double)ROT / 1024.0f);
+			double cosYAW = cos((double)ROT / 1024.0f);
+			engine.getCamera(true).Position = { 100.0f * cosROT, 100.0f * sinROT, 50.0f };
+			float lightReflactance = std::max(0.0f, sinf((float)ROT / 512.0f));
+			float sunsetCoef = abs(cos((double)ROT / 512.0f)*1.5f);
+			engine.setBackground((sunsetCoef) * 0.25f * (lightReflactance + 0.25f), 
+				(lightReflactance + sunsetCoef / 2.0f) * 0.5f * (lightReflactance), 
+				lightReflactance, 1.0f);
+			ROT+=4;
 		}
 
-		engine.configureGameFrame(45.0f, 0.1f, 1000.0f);
-	}
+		//engine.setupShadowMap(1024, 1024);
 
-	for (int i = 0; i < cntOfObj; i++) {
-		delete pyramids[i];
+		engine.configureGameFrame(45.0f, 0.1f, 1000.0f, true);
 	}
 
 	engine.EngineTerminate();

@@ -8,15 +8,18 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // Could have used glm
-class Camera_Vector3 {
+class AVector3 {
 public:
-	double x, y, z;
-	Camera_Vector3 operator+(const Camera_Vector3& dr);
-	Camera_Vector3 operator*(const Camera_Vector3& dr);
-	Camera_Vector3 operator*(const float& scalar);
-	Camera_Vector3& operator+=(const Camera_Vector3& dr);
-	Camera_Vector3 operator^(const Camera_Vector3& dr); // Used for cross product
-	Camera_Vector3 Normalize();
+	double x = 0.0f, y = 0.0f, z = 0.0f;
+	AVector3() = default;
+	AVector3(double _x, double _y, double _z) : x(_x), y(_y), z(_z) {};
+	~AVector3() = default;
+	AVector3 operator+(const AVector3& dr);
+	AVector3 operator*(const AVector3& dr);
+	AVector3 operator*(const float& scalar);
+	AVector3& operator+=(const AVector3& dr);
+	AVector3 operator^(const AVector3& dr); // Used for cross product
+	AVector3 Normalize();
 };
 
 // Here we store our view and projection matrix and we forward it to Main.cpp
@@ -31,24 +34,27 @@ class Camera
 {
 public:
 	// Stores the main vectors of the camera
-	Camera_Vector3 Position;
-	Camera_Vector3 Rotation = {0.0f, 0.0f, -1.0f};
-	Camera_Vector3 Up = { 0.0f, 1.0f, 0.0f };
+	AVector3 Position;
+	AVector3 Rotation = {0.0f, 0.0f, -1.0f};
+	AVector3 Up = { 0.0f, 1.0f, 0.0f };
 	float Yaw, Pitch;
 	Mat4Pair mat4Tuple;
 
 	float speed = 0.1f;
-	float sensitivity = 0.01f;
+	float sensitivity = 0.05f;
 
 	GLuint camPosUniformLoc;
 	GLuint perspMat4Loc;
+	GLuint userPerspMat4Loc; //for first pass when drawing from SunCamera perspective in Texture
 	GLuint camYLoc;
 
 	// Camera constructor to set up initial values
-	Camera(Camera_Vector3 pos, float _Yaw, float _Pitch);
+	Camera(AVector3 pos, float _Yaw, float _Pitch);
 
 	// Sends the camera perspective matrix to the Vertex Shader
 	void Matrix(float FOVdeg, float nearPlane, float farPlane, float aspectRatio, Shader& shader);
+
+	void LightMatrix(float shadowMapScale, Shader& shader, GLuint depthMatrixID, GLuint perspMatrixIDUser, bool TextureBias);
 	// Handles camera inputs
 	void Inputs(GLFWwindow* window);
 };

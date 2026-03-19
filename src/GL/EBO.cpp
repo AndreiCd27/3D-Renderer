@@ -1,9 +1,9 @@
 #include "EBO.h"
 
-EBO::EBO(GLuint* indicies, GLsizeiptr size) {
+void EBO::Setup(GLuint* indicies, GLsizeiptr size, const int drawStyle) {
 	glGenBuffers(1, &ID);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ID);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, size * sizeof(GLuint), indicies, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, size * sizeof(GLuint), indicies, drawStyle);
 }
 
 void EBO::Bind() {

@@ -1,13 +1,14 @@
 #pragma once
 
 #include <glad/glad.h>
+#include <iostream>
 
 class EBO {
 public:
 	GLuint ID;
-	EBO() = default;
-	EBO(GLuint* indicies, GLsizeiptr size);
+	EBO() { std::cout << "C -> EBO \n"; };
 
+	void Setup(GLuint* indicies, GLsizeiptr size, const int drawStyle);
 	void Bind();
 	void Unbind();
 	void Delete();

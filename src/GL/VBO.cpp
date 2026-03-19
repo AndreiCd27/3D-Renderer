@@ -1,14 +1,14 @@
 #include "VBO.h"
 
-VBO::VBO(AVertex* vertices, GLsizeiptr size) {
+void VBO::Setup(AVertex* vertices, GLsizeiptr size, const int drawStyle) {
 	glGenBuffers(1, &ID);
 	glBindBuffer(GL_ARRAY_BUFFER, ID);
-	glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, size, vertices, drawStyle);
 }
-VBO::VBO(int* vertices, GLsizeiptr size) {
+void VBO::Setup(int* vertices, GLsizeiptr size, const int drawStyle) {
 	glGenBuffers(1, &ID);
 	glBindBuffer(GL_ARRAY_BUFFER, ID);
-	glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, size, vertices, drawStyle);
 }
 
 void VBO::Bind() {

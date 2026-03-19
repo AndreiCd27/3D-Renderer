@@ -1,33 +1,34 @@
 #include "Camera.h"
 #include "GeometryLoader.h"
 
-Camera_Vector3 Camera_Vector3::operator+(const Camera_Vector3& dr) {
+AVector3 AVector3::operator+(const AVector3& dr) {
 	return { dr.x + this->x, dr.y + this->y, dr.z + this->z };
 }
-Camera_Vector3& Camera_Vector3::operator+=(const Camera_Vector3& dr) {
+AVector3& AVector3::operator+=(const AVector3& dr) {
 	this->x += dr.x; this->y += dr.y; this->z += dr.z;
 	return *this;
 }
-Camera_Vector3 Camera_Vector3::operator*(const Camera_Vector3& dr) {
+AVector3 AVector3::operator*(const AVector3& dr) {
 	return { dr.x * this->x, dr.y * this->y, dr.z * this->z };
 }
-Camera_Vector3 Camera_Vector3::operator*(const float& scalar) {
+AVector3 AVector3::operator*(const float& scalar) {
 	return { scalar * this->x, scalar * this->y, scalar * this->z };
 }
-Camera_Vector3 Camera_Vector3::operator^(const Camera_Vector3& dr) { //CROSS PRODUCT
+AVector3 AVector3::operator^(const AVector3& dr) { //CROSS PRODUCT
 	return {
 		this->y * dr.z - this->z * dr.y,
 		this->z * dr.x - this->x * dr.z,
 		this->x * dr.y - this->y * dr.x
 	};
 }
-Camera_Vector3 Camera_Vector3::Normalize() {
+AVector3 AVector3::Normalize() {
 	float dist = std::sqrtf(this->x * this->x + this->y * this->y + this->z * this->z);
 	return { this->x / dist, this->y / dist, this->z / dist };
 }
 
-Camera::Camera(Camera_Vector3 pos, float _Yaw, float _Pitch)
+Camera::Camera(AVector3 pos, float _Yaw, float _Pitch)
 {
+	std::cout << "C -> Camera \n";
 	Position = pos;
 	Yaw = _Yaw;
 	Pitch = _Pitch;
@@ -57,6 +58,34 @@ void Camera::Matrix(float FOVdeg, float near, float far, float aspect, Shader& s
 	glUniformMatrix4fv(this->perspMat4Loc, 1, GL_FALSE, glm::value_ptr(perspMatrix));
 }
 
+void Camera::LightMatrix(float shadowMapScale, Shader& shader, GLuint lightMatrixID, GLuint perspMatrixIDUser, bool TextureBias) {
+
+	//Light matrix uniformID is already inside SunCamera (see class Engine3D)
+
+	glm::vec3 lightPos = glm::vec3(this->Position.x, this->Position.y, this->Position.z);
+
+	//////////////////////////////////////////////////////////////////////////////// CHECK THIS
+	mat4Tuple.proj = glm::ortho(-shadowMapScale, shadowMapScale, -shadowMapScale, shadowMapScale, -1000.0f, 1000.0f);
+	mat4Tuple.view = glm::lookAt(lightPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+	glm::mat4 depthMatrix = mat4Tuple.proj * mat4Tuple.view;
+
+	if (TextureBias) {
+		glm::mat4 biasMatrix(
+			0.5, 0.0, 0.0, 0.0,
+			0.0, 0.5, 0.0, 0.0,
+			0.0, 0.0, 0.5, 0.0,
+			0.5, 0.5, 0.5, 1.0
+		);
+		depthMatrix = biasMatrix * depthMatrix;
+		glUniformMatrix4fv(lightMatrixID, 1, GL_FALSE, glm::value_ptr(depthMatrix));
+	} else {
+		glUniformMatrix4fv(lightMatrixID, 1, GL_FALSE, glm::value_ptr(depthMatrix));
+		glUniformMatrix4fv(this->userPerspMat4Loc, 1, GL_FALSE, glm::value_ptr(depthMatrix));
+		
+	}
+};
+
 void Camera::Inputs(GLFWwindow* window)
 {
 
@@ -72,7 +101,7 @@ void Camera::Inputs(GLFWwindow* window)
 	if (Pitch < -89.0f) Pitch = -89.0f;
 
 	// Recalculate Rotation Vector
-	Camera_Vector3 newRotation;
+	AVector3 newRotation;
 	newRotation.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
 	newRotation.y = sin(glm::radians(Pitch));
 	newRotation.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));

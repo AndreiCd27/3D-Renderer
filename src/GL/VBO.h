@@ -7,10 +7,10 @@
 class VBO {
 public:
 	GLuint ID;
-	VBO() = default;
-	VBO(AVertex* vertices, GLsizeiptr size);
-	VBO(int* vertices, GLsizeiptr size);
+	VBO() { std::cout << "C -> VBO \n"; };
 
+	void Setup(AVertex* vertices, GLsizeiptr size, const int drawStyle);
+	void Setup(int* vertices, GLsizeiptr size, const int drawStyle);
 	void Bind();
 	void Unbind();
 	void Delete();

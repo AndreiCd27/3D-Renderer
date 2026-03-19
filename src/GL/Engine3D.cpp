@@ -1,34 +1,28 @@
 
 #include "Engine3D.h"
 
-Engine3D::~Engine3D() {
-	if (shaderProgram) delete shaderProgram;
-	if (VAO_1) delete VAO_1;
-	if (VBO_1) delete VBO_1;
-	if (EBO_1) delete EBO_1;
-
-	if (UserCamera) delete UserCamera;
-	if (MainScene) { MainScene->deleteWorldRoot(); delete MainScene; }
-}
-
-void Engine3D::setScene() {
-	MainScene = new Scene();
-}
 
 void Engine3D::setCamera(double posX, double posY, double posZ) {
-	Camera_Vector3 Position = { posX, posY, posZ };
-	UserCamera = new Camera(Position, -90.0f, 0.0f);
+	AVector3 Position = { posX, posY, posZ };
+	UserCamera = Camera(Position, -90.0f, 0.0f);
 }
 
 void Engine3D::setCamera(double posX, double posY, double posZ, float yaw, float pitch) {
 	//EX: Camera({ 0.0f, 80.0f, 120.0f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f });;
-	Camera_Vector3 Position = { posX, posY, posZ };
-	UserCamera = new Camera(Position, yaw, pitch);
+	AVector3 Position = { posX, posY, posZ };
+	UserCamera = Camera(Position, yaw, pitch);
 }
 
+void Engine3D::setSunCamera(double posX, double posY, double posZ) {
+	//EX: Camera({ 0.0f, 80.0f, 120.0f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f });;
+	AVector3 Position = { posX, posY, posZ };
+	SunCamera = Camera(Position, 0.0f, 0.0f);
+}
+
+
 void Engine3D::DEBUG_showCameraVectors() {
-	std::cout << UserCamera->Position.x << " " << UserCamera->Position.y << " " << UserCamera->Position.z<<"\n";
-	std::cout << UserCamera->Yaw <<" "<< UserCamera->Pitch << "\n";
+	std::cout << UserCamera.Position.x << " " << UserCamera.Position.y << " " << UserCamera.Position.z<<"\n";
+	std::cout << UserCamera.Yaw <<" "<< UserCamera.Pitch << "\n";
 }
 
 int Engine3D::setupGLFW(const int WINDOW_WIDTH, const int WINDOW_HEIGHT, const char * WINDOW_TITLE) {
@@ -60,33 +54,52 @@ int Engine3D::setupGLFW(const int WINDOW_WIDTH, const int WINDOW_HEIGHT, const c
 	return 1;
 }
 
-void Engine3D::setupShaders() {
+const int Engine3D::getDrawStyle(const char* style) {
+	if (style == "static") return GL_STATIC_DRAW;
+	if (style == "stream") return GL_STREAM_DRAW;
+	if (style == "dynamic") return GL_DYNAMIC_DRAW;
+	return GL_STATIC_DRAW;
+}
+
+void Engine3D::setupShaders(const int drawStyle=GL_STATIC_DRAW) {
 
 	//if (UserCamera == nullptr) { std::cerr << "Unable to setup Shader before Camera Object, please call setCamera() first \n"; return; }
 
-	shaderProgram = new Shader("default.vert", "default.frag");
+	shaderProgram.Setup("default.vert", "default.frag");
 
-	UserCamera->camPosUniformLoc = glGetUniformLocation(shaderProgram->ID, "camPosLH");
-	UserCamera->perspMat4Loc = glGetUniformLocation(shaderProgram->ID, "perspectiveMatrix");
-	UserCamera->camYLoc = glGetUniformLocation(shaderProgram->ID, "camY");
+	UserCamera.camPosUniformLoc = glGetUniformLocation(shaderProgram.ID, "camPosLH");
+	UserCamera.perspMat4Loc = glGetUniformLocation(shaderProgram.ID, "perspectiveMatrix");
+	UserCamera.camYLoc = glGetUniformLocation(shaderProgram.ID, "camY");
 
-	VAO_1 = new VAO();
+	SunCamera.perspMat4Loc = glGetUniformLocation(shaderProgram.ID, "lightPerspMatrix");
+	SunCamera.userPerspMat4Loc = glGetUniformLocation(shaderProgram.ID, "perspectiveMatrix");
 
-	VAO_1->Bind();
+	lightDirUnifLoc = glGetUniformLocation(shaderProgram.ID, "lightDirection");
 
-	std::vector<AVertex>& worldVertices = MainScene->getVertStoreLocation().getWorldVertices();
+	VAO_1.Setup();
 
-	std::vector<GLuint> VertIndicies = MainScene->getVertStoreLocation().getVertIndicies();
+	VAO_1.Bind();
 
-	VBO_1 = new VBO( worldVertices.data(), worldVertices.size() * sizeof(AVertex) );
-	EBO_1 = new EBO(VertIndicies.data(), VertIndicies.size() * sizeof(GLuint));
+	std::vector<AVertex>& worldVertices = MainScene.getVertStoreLocation().getWorldVertices();
 
-	VAO_1->LinkVBO(*VBO_1, 0, 4, GL_FLOAT, 32, (void*)0);
-	VAO_1->LinkVBO(*VBO_1, 1, 4, GL_FLOAT, 32, (void*)16);
+	std::vector<GLuint>& VertIndicies = MainScene.getVertStoreLocation().getVertIndicies();
 
-	VAO_1->Unbind();
-	VBO_1->Unbind();
-	EBO_1->Unbind();
+	VBO_1.Setup(worldVertices.data(), worldVertices.size() * sizeof(AVertex), drawStyle );
+	EBO_1.Setup(VertIndicies.data(), VertIndicies.size() * sizeof(GLuint), drawStyle );
+
+	size_t stride = sizeof(AVertex); //48 bytes
+	VAO_1.LinkVBO(VBO_1, 0, 4, GL_FLOAT, stride, (void*)0);
+	VAO_1.LinkVBO(VBO_1, 1, 4, GL_FLOAT, stride, (void*)16);
+	VAO_1.LinkVBO(VBO_1, 2, 4, GL_FLOAT, stride, (void*)32);
+
+	depthTextureObject.setupFBO();
+	depthTextureObject.setupDepthTexture(2048, shadowMapLocation);
+
+	VAO_1.Unbind();
+	VBO_1.Unbind();
+	EBO_1.Unbind();
+
+	glEnable(GL_DEPTH_TEST);
 
 }
 
@@ -104,7 +117,7 @@ void Engine3D::setupInstanceVBO(const int cntOfObj) {
 	glBufferData(GL_ARRAY_BUFFER, cntOfObj * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
 
 	// Configure VAO for mat4 matricies (4*vec4 size)
-	VAO_1->Bind();
+	VAO_1.Bind();
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 
 	for (int i = 0; i < 4; i++) {
@@ -112,7 +125,7 @@ void Engine3D::setupInstanceVBO(const int cntOfObj) {
 		glVertexAttribPointer(2 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * i)); //specify mat4 size
 		glVertexAttribDivisor(2 + i, 1); // We tell the GPU the change the matrix PER INSTANCE
 	}
-	VAO_1->Unbind();
+	VAO_1.Unbind();
 
 	//Set background color to be drawn
 	glClearColor(0.0f, 0.25f, 0.75f, 1.0f);
@@ -123,56 +136,76 @@ void Engine3D::setupInstanceVBO(const int cntOfObj) {
 
 }
 
-Camera* Engine3D::getCamera() { return UserCamera; }
-Scene* Engine3D::getScene() { return MainScene; }
+Camera& Engine3D::getCamera(bool Sun) { if (Sun) { return SunCamera; } return UserCamera; }
+Scene* Engine3D::getScene() { return &MainScene; }
 
 const GLuint Engine3D::GetUniformLocation(const char* uniformName) {
-	return glGetUniformLocation(shaderProgram->ID, uniformName);
+	return glGetUniformLocation(shaderProgram.ID, uniformName);
 }
 
 void Engine3D::initGameFrame() {
 	//Set background color to be drawn
 	glClearColor(backgroundColor.R, backgroundColor.G, backgroundColor.B, backgroundColor.A);
-	//Clear the BACK BUFFER and assign our color to it
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Engine3D::registerCameraInput(float FOVdeg, float zNear, float zFar) {
-	UserCamera->Inputs(window);
-	UserCamera->Matrix(FOVdeg, zNear, zFar, windowAspectRatio, *shaderProgram);
+	UserCamera.Inputs(window);
+	UserCamera.Matrix(FOVdeg, zNear, zFar, windowAspectRatio, shaderProgram);
 }
 
-void Engine3D::configureGameFrame(float FOVdeg, float zNear, float zFar) {
+void Engine3D::configureGameFrame(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO) {
 
-	shaderProgram->Activate();
+	glBindFramebuffer(GL_FRAMEBUFFER, depthTextureObject.FBO_ID);
+	glViewport(0, 0, 2048, 2048);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+
+	shaderProgram.Activate();
+	VAO_1.Bind();
+
+	glUniform1f(UserCamera.camYLoc, 0);
+	glUniform4f(UserCamera.camPosUniformLoc, 0, 0, 0, 0);
+
+	SunCamera.LightMatrix(500.0f, shaderProgram, SunCamera.perspMat4Loc, SunCamera.userPerspMat4Loc, false);
+
+	// The Sun is looking from it's Position to the center (0,0,0);
+	glUniform3f(lightDirUnifLoc, SunCamera.Position.x, SunCamera.Position.y, SunCamera.Position.z);
+
+	if (UPDATE_VBO) {
+		glBindBuffer(GL_ARRAY_BUFFER, VBO_1.ID);
+		auto& VBOdata = MainScene.getVertStoreLocation().getWorldVertices();
+		glBufferSubData(GL_ARRAY_BUFFER, 0, VBOdata.size() * sizeof(AVertex), VBOdata.data());
+	}
+
+
+	int indiciesSize = MainScene.getVertStoreLocation().getVertIndicies().size();
+
+	glDrawElements(GL_TRIANGLES, indiciesSize, GL_UNSIGNED_INT, 0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glDrawBuffer(GL_BACK);
+	glViewport(0, 0, windowWidth, windowHeight);
+	//Clear the BACK BUFFER and assign our color to it
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glCullFace(GL_BACK);
+
+	shaderProgram.Activate();
+	VAO_1.Bind();
+
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
 	this->registerCameraInput(FOVdeg, zNear, zFar);
 
-	// Calculate relative positions of all meshes
-	// Later, we forward every computed projection matrix to the instanceVBO
-	std::vector<MeshObj*>& meshes = MainScene->getMeshes();
-	/*
-	for (int i = 0; i < modelMatrices.size(); i++) {
-		float relX = (float)(meshes[i]->worldPosition.wx - UserCamera->Position.x);
-		float relY = (float)(meshes[i]->worldPosition.wy - UserCamera->Position.y);
-		float relZ = (float)(meshes[i]->worldPosition.wz - UserCamera->Position.z);
-		modelMatrices[i] = UserCamera->mat4Tuple.proj * 
-			UserCamera->mat4Tuple.view * 
-			glm::translate(glm::mat4(1.0f), glm::vec3(relX, relY, relZ));
-	}
-	*/
+	SunCamera.LightMatrix(500.0f, shaderProgram, SunCamera.perspMat4Loc, 0, true);
 
-	// We send all matrices to the GPU in a single instance call
-	/*
-	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
-	*/
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, depthTextureObject.depthTexture);
+	//glUniform1i(shadowMapLocation, 0);
 
-	VAO_1->Bind();
-
-	//glDrawElementsInstanced(GL_TRIANGLES, meshes[0]->getSize(),
-		//GL_UNSIGNED_INT, 0, modelMatrices.size());
-
-	glDrawElements(GL_TRIANGLES, MainScene->getVertStoreLocation().getVertIndicies().size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, indiciesSize, GL_UNSIGNED_INT, 0);
 	//Swap BACK BUFFER with FRONT BUFFER
 	glfwSwapBuffers(window);
 	// Get events (for controls, event handling, closing, etc.)
@@ -181,15 +214,15 @@ void Engine3D::configureGameFrame(float FOVdeg, float zNear, float zFar) {
 
 void Engine3D::EngineTerminate() {
 	//Delete our VAOs, VBOs, EBOs
-	VAO_1->Delete();
-	VBO_1->Delete();
-	EBO_1->Delete();
+	VAO_1.Delete();
+	VBO_1.Delete();
+	EBO_1.Delete();
 
 	//Delete instanceVBO
 	glDeleteBuffers(1, &instanceVBO);
 
 	//Delete shader
-	shaderProgram->Delete();
+	shaderProgram.Delete();
 
 	//Destroy WINDOW OBJECT
 	glfwDestroyWindow(window);
@@ -197,15 +230,19 @@ void Engine3D::EngineTerminate() {
 	glfwTerminate();
 }
 
-void Engine3D::LoadSTLGeomFile(const char* fileName, int R, int G, int B, float scale) {
+MeshObj* Engine3D::LoadSTLGeomFile(const char* fileName, int R, int G, int B, float scale) {
 	std::vector<float> coords, normals;
 	std::vector<unsigned int> tris, solids;
 
 	try {
 		stl_reader::ReadStlFile(fileName, coords, normals, tris, solids);
 
-		AVertex* vert = new AVertex[tris.size()];
-		int* indicies = new int[tris.size()];
+		std::vector<AVertex> vert;
+		std::vector<int> indicies;
+
+		const size_t totalIndices = tris.size();
+		vert.reserve(totalIndices);
+		indicies.reserve(totalIndices);
 
 		std::cout <<"Mesh coord count: " << coords.size() << " trig count: " << tris.size()<<"\n";
 		const size_t numTris = tris.size() / 3;
@@ -215,19 +252,82 @@ void Engine3D::LoadSTLGeomFile(const char* fileName, int R, int G, int B, float 
 				int coordINDEX = 3 * tris[3 * itri + icorner];
 				int vertexINDEX = 3 * itri + icorner;
 				float* c = &coords[coordINDEX];
-				indicies[vertexINDEX] = vertexINDEX;
-				vert[vertexINDEX] = (this->GetAVertex(c[0]*scale, c[1]*scale, c[2]*scale, R, G, B));
+				indicies.push_back(vertexINDEX);
+				vert.push_back(this->GetAVertex(c[0]*scale, c[1]*scale, c[2]*scale, 
+					R + (c[0] * scale * 10 / 2), G - (c[2] * scale * 10 / 4), B + (c[2]*scale * 10)));
 				//std::cout << "(" << c[0] << ", " << c[1] << ", " << c[2] << ") ";
 			}
 			//std::cout << std::endl;
 		}
-		MeshObj* createdMesh = new MeshObj(vert, tris.size(), indicies, tris.size(), MainScene);
 
-		delete[] vert;
-		delete[] indicies;
 		std::cout << "Mesh created \n";
+
+		return new MeshObj(vert, (int)tris.size(), indicies, (int)tris.size(), &MainScene);;
 	}
 	catch (std::exception& e) {
 		std::cout << e.what() << std::endl;
 	}
+
+	return nullptr;
+}
+
+MeshObj* Engine3D::CreateMesh(const std::vector<AVertex>& vertices, int VertexNumber, 
+	const std::vector<int>& indicies, int VertIndexNumber) {
+
+	if (vertices.size() < 3) { std::cout << "Mesh does not contain any triangles \n"; return nullptr; };
+
+	return new MeshObj(vertices, VertexNumber, indicies, VertIndexNumber, &MainScene);
+}
+MeshObj* Engine3D::CreatePrism(const std::vector<AVertex>& vertices, int VertexNumber, float height) {
+
+	std::vector<int> indicies;
+
+	std::vector<AVertex> V = vertices;
+	V.reserve(VertexNumber * 2);
+
+	if (vertices.size() < 3) { std::cout << "Mesh does not contain any triangles \n"; return nullptr; };
+
+	// 0 -> 1 -> 2
+	// |  / |  / |
+	// | /  | /  |
+	// 3 -> 4 -> 5
+
+	for (int i = 0; i < VertexNumber; i++) {
+		AVertex vclone = vertices[i];
+		vclone.y += height;
+		V.push_back(vclone); // create bottom vertex
+	}
+	for (int i = 0; i < VertexNumber-1; i++) {
+		//LATERAL FACE 1
+		indicies.push_back(i);
+		indicies.push_back(i + 1);
+		indicies.push_back(VertexNumber + i);
+		//LATERAL FACE 2
+		indicies.push_back(VertexNumber + i + 1);
+		indicies.push_back(VertexNumber + i);
+		indicies.push_back(i + 1);
+	}
+
+	//LATERAL FACE 1
+	indicies.push_back(VertexNumber - 1);
+	indicies.push_back(0);
+	indicies.push_back(2 * VertexNumber - 1);
+	//LATERAL FACE 2
+	indicies.push_back(VertexNumber);
+	indicies.push_back(2 * VertexNumber - 1);
+	indicies.push_back(0);
+
+	for (int i = 1; i < VertexNumber-1; i++) {
+		//BOTTOM FACE
+		indicies.push_back(0);
+		indicies.push_back(i);
+		indicies.push_back(i + 1);
+		
+		//TOP FACE
+		indicies.push_back(VertexNumber);
+		indicies.push_back(VertexNumber + i);
+		indicies.push_back(VertexNumber + i + 1);
+	}
+
+	return new MeshObj(V, VertexNumber*2, indicies, indicies.size(), &MainScene);
 }
