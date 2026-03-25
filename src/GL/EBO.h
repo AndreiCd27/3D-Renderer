@@ -1,7 +1,7 @@
 #pragma once
 
-#include <glad/glad.h>
-#include <iostream>
+#include "pch.h"
+#include "framework.h"
 
 class EBO {
 public:
@@ -9,7 +9,7 @@ public:
 	size_t Capacity = 0;
 	EBO() { std::cout << "C -> EBO \n"; };
 
-	void Setup(GLuint* indicies, GLsizeiptr size, const int drawStyle);
+	void Setup(std::vector<GLuint>& VertIndicies, GLsizeiptr size, const int drawStyle);
 	void Bind();
 	void Unbind();
 	void Delete();

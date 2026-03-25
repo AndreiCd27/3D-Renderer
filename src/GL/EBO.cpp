@@ -1,10 +1,16 @@
+
+#include "pch.h"
+#include "framework.h"
+
 #include "EBO.h"
 
-void EBO::Setup(GLuint* indicies, GLsizeiptr size, const int drawStyle) {
+void EBO::Setup(std::vector<GLuint>& VertIndicies, GLsizeiptr size, const int drawStyle) {
+	//std::cout << "Setup EBO!!!!\n";
 	glGenBuffers(1, &ID);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ID);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, size * sizeof(GLuint), indicies, drawStyle);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, VertIndicies.data(), drawStyle);
 	Capacity = size;
+	//std::cout << "Setup EBO complete!!!!\n";
 }
 
 void EBO::Bind() {

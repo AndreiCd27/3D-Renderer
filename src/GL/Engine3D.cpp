@@ -1,7 +1,8 @@
+#include "pch.h"
+#include "framework.h"
 
 #include "Engine3D.h"
 #include <cstring>
-
 
 void Engine3D::setCamera(double posX, double posY, double posZ) {
 	AVector3 Position = { posX, posY, posZ };
@@ -68,6 +69,8 @@ void Engine3D::setupShaders(const int drawStyle=GL_STATIC_DRAW) {
 
 	shaderProgram.Setup("default.vert", "default.frag");
 
+	//std::cout << "Shader setup complete! \n";
+
 	UserCamera.camPosUniformLoc = glGetUniformLocation(shaderProgram.ID, "camPosLH");
 	UserCamera.perspMat4Loc = glGetUniformLocation(shaderProgram.ID, "perspectiveMatrix");
 	UserCamera.camYLoc = glGetUniformLocation(shaderProgram.ID, "camY");
@@ -77,28 +80,40 @@ void Engine3D::setupShaders(const int drawStyle=GL_STATIC_DRAW) {
 
 	lightDirUnifLoc = glGetUniformLocation(shaderProgram.ID, "lightDirection");
 
+	//std::cout << "VAO Setup \n";
 	VAO_1.Setup();
 
 	VAO_1.Bind();
+	//std::cout << "VAO Setup and Binding complete \n";
 
 	std::vector<AVertex>& worldVertices = MainScene.getVertStoreLocation().getWorldVertices();
 
 	std::vector<GLuint>& VertIndicies = MainScene.getVertStoreLocation().getVertIndicies();
 
-	VBO_1.Setup(worldVertices.data(), worldVertices.size() * sizeof(AVertex), drawStyle );
-	EBO_1.Setup(VertIndicies.data(), VertIndicies.size() * sizeof(GLuint), drawStyle );
+	//std::cout << "Got vertex and indicies buffers \n";
 
-	size_t stride = sizeof(AVertex); //48 bytes
+	VBO_1.Setup(worldVertices, worldVertices.size() * sizeof(AVertex), drawStyle );
+	EBO_1.Setup(VertIndicies, VertIndicies.size() * sizeof(GLuint), drawStyle );
+
+	//std::cout << "VBO & EBO setup complete \n";
+
+	GLsizei stride = sizeof(AVertex); //48 bytes
 	VAO_1.LinkVBO(VBO_1, 0, 4, GL_FLOAT, stride, (void*)0);
 	VAO_1.LinkVBO(VBO_1, 1, 4, GL_FLOAT, stride, (void*)16);
 	VAO_1.LinkVBO(VBO_1, 2, 4, GL_FLOAT, stride, (void*)32);
 
+	//std::cout << "VBO linking complete \n";
+
 	depthTextureObject.setupFBO();
 	depthTextureObject.setupDepthTexture(2048, shadowMapLocation);
+
+	//std::cout << "Setup FBO complete \n";
 
 	VAO_1.Unbind();
 	VBO_1.Unbind();
 	EBO_1.Unbind();
+
+	//std::cout << "Unbinding..\n";
 
 	glEnable(GL_DEPTH_TEST);
 
@@ -135,6 +150,33 @@ void Engine3D::setupInstanceVBO(const int cntOfObj) {
 	//Swap BACK BUFFER with FRONT BUFFER
 	glfwSwapBuffers(window);
 
+}
+
+void Engine3D::loadChunks(Tile* from) {
+
+	//std::cout << "Getting meshes! \n";
+
+	std::vector<MeshObj*> meshes = MainScene.GetTileMeshes(from);
+
+	//std::cout << "Loaded meshes! \n";
+	
+	DATA_3D_PAIR.vert.clear();
+	DATA_3D_PAIR.indicies.clear();
+
+	//std::cout << "Getting global verticies \n";
+
+	std::vector<AVertex>& globalVertices = MainScene.getVertStoreLocation().getWorldVertices();
+
+	//std::cout << "Loaded global verticies \n";
+
+	for (MeshObj* Mesh : meshes) {
+		for (GLuint i : Mesh->vertIndicies) {
+			DATA_3D_PAIR.vert.push_back(globalVertices[i]);
+			DATA_3D_PAIR.indicies.push_back(DATA_3D_PAIR.indicies.size());
+		}
+	}
+
+	//std::cout << "Got pairs! \n";
 }
 
 Camera& Engine3D::getCamera(bool Sun) { if (Sun) { return SunCamera; } return UserCamera; }
@@ -174,7 +216,7 @@ void Engine3D::shadowPass() {
 	// The Sun is looking from it's Position to the center (0,0,0);
 	glUniform3f(lightDirUnifLoc, SunCamera.Position.x, SunCamera.Position.y, SunCamera.Position.z);
 
-	int indiciesSize = MainScene.getVertStoreLocation().getVertIndicies().size();
+	size_t indiciesSize = MainScene.getVertStoreLocation().getVertIndicies().size();
 
 	glDrawElements(GL_TRIANGLES, indiciesSize, GL_UNSIGNED_INT, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -186,9 +228,18 @@ void Engine3D::renderPass(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO
 
 	
 	if (UPDATE_VBO) {
+
+		//
+
+		loadChunks(MainScene.WorldRoot);
+
+		//std::cout << "Loaded pairs! \n";
+		//
+
 		glBindBuffer(GL_ARRAY_BUFFER, VBO_1.ID);
-		auto& VBOdata = MainScene.getVertStoreLocation().getWorldVertices();
+		auto& VBOdata = DATA_3D_PAIR.vert; //MainScene.getVertStoreLocation().getWorldVertices();
 		size_t VBOsize = VBOdata.size();
+		//std::cout << "VBO size: " << VBOsize << " | VBO Capacity: " << VBO_1.Capacity << "\n";
 		if (VBOsize > VBO_1.Capacity) {
 			VBO_1.Capacity *= 2;
 			glBufferData(GL_ARRAY_BUFFER, VBO_1.Capacity * sizeof(AVertex), VBOdata.data(), GL_DYNAMIC_DRAW);
@@ -197,8 +248,9 @@ void Engine3D::renderPass(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO
 			glBufferSubData(GL_ARRAY_BUFFER, 0, VBOsize * sizeof(AVertex), VBOdata.data());
 		}
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_1.ID);
-		auto& EBOdata = MainScene.getVertStoreLocation().getVertIndicies();
+		auto& EBOdata = DATA_3D_PAIR.indicies; //MainScene.getVertStoreLocation().getVertIndicies();
 		size_t EBOsize = EBOdata.size();
+		//std::cout << "EBO size: " << EBOsize << " | EBO Capacity: " << EBO_1.Capacity << "\n";
 		if (EBOsize > EBO_1.Capacity) {
 			EBO_1.Capacity *= 2;
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, EBO_1.Capacity * sizeof(GLuint), EBOdata.data(), GL_DYNAMIC_DRAW);
@@ -211,7 +263,7 @@ void Engine3D::renderPass(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO
 		//std::cout << EBOdata.size() << " " << VBOdata.size() << " INDICIES | VERTEX LOADS \n";
 	}
 
-	int indiciesSize = MainScene.getVertStoreLocation().getVertIndicies().size();
+	size_t indiciesSize = MainScene.getVertStoreLocation().getVertIndicies().size();
 
 	glViewport(0, 0, windowWidth, windowHeight);
 	//Clear the BACK BUFFER and assign our color to it
@@ -278,10 +330,10 @@ MeshObj* Engine3D::LoadSTLGeomFile(const char* fileName, float scale) {
 		indicies.reserve(totalIndices);
 
 		std::cout <<"Mesh coord count: " << coords.size() << " trig count: " << tris.size()<<"\n";
-		const size_t numTris = tris.size() / 3;
-		for (size_t itri = 0; itri < numTris; ++itri) {
+		const int numTris = tris.size() / 3;
+		for (int itri = 0; itri < numTris; ++itri) {
 			//std::cout << "coordinates of triangle " << itri << ": ";
-			for (size_t icorner = 0; icorner < 3; ++icorner) {
+			for (int icorner = 0; icorner < 3; ++icorner) {
 				int coordINDEX = 3 * tris[3 * itri + icorner];
 				int vertexINDEX = 3 * itri + icorner;
 				float* c = &coords[coordINDEX];

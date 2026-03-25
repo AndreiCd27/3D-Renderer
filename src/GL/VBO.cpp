@@ -1,15 +1,15 @@
+#include "pch.h"
+#include "framework.h"
+
 #include "VBO.h"
 
-void VBO::Setup(AVertex* vertices, GLsizeiptr size, const int drawStyle) {
+void VBO::Setup(std::vector<AVertex>& worldVertices, GLsizeiptr size, const int drawStyle) {
+	//std::cout << "Setup VBO!!!!\n";
 	glGenBuffers(1, &ID);
 	glBindBuffer(GL_ARRAY_BUFFER, ID);
-	glBufferData(GL_ARRAY_BUFFER, size, vertices, drawStyle);
+	glBufferData(GL_ARRAY_BUFFER, size, worldVertices.data(), drawStyle);
 	Capacity = size;
-}
-void VBO::Setup(int* vertices, GLsizeiptr size, const int drawStyle) {
-	glGenBuffers(1, &ID);
-	glBindBuffer(GL_ARRAY_BUFFER, ID);
-	glBufferData(GL_ARRAY_BUFFER, size, vertices, drawStyle);
+	//std::cout << "Setup VBO complete!!!! \n";
 }
 
 void VBO::Bind() {

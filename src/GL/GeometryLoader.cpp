@@ -1,9 +1,38 @@
+#include "pch.h"
+#include "framework.h"
+
 #include "GeometryLoader.h"
-#include <iostream>
-#include <bitset>
 
 int TOTAL_C_COUNT = 0;
 int TOTAL_D_COUNT = 0;
+
+int Blueprint::contor = 0;
+const int Blueprint::safeBlueprintCount = 4095;
+
+const int Blueprint::GetShiftComponent() {
+	return (int) log2l(Blueprint::safeBlueprintCount) + 1;
+}
+
+const int Tile::shiftComponent = Blueprint::GetShiftComponent();
+
+MeshVertexObject MeshObj::MVO;
+
+Blueprint::Blueprint(const std::vector<AVertex>& vertices, const std::vector<GLuint>& indicies) {
+
+	if (contor >= safeBlueprintCount) {
+		throw BlueprintException(" Blueprint limit exceded! Maximum Blueprint Count: " + std::to_string(safeBlueprintCount), 0);
+	}
+
+	Geometry.vertices = vertices;
+	Geometry.indicies = indicies;
+	templateID = contor;
+	contor++;
+}
+
+Instance::Instance(const Blueprint* Template) {
+	this->Template = Template;
+	this->Color = { 200, 200, 200 };
+}
 
 
 const GLfloat scalingFactor = 1.0f;
@@ -40,10 +69,36 @@ void CalculateSurfaceNormals(int VertIndexNumber, std::vector<AVertex>& worldVer
 	}
 }
 
-MeshObj::MeshObj(const std::vector<AVertex>& vertices, int VertexNumber, const std::vector<int>& indicies, int VertIndexNumber, Scene* _scene) {
-	std::cout << "C -> Mesh \n";
+unsigned int getCBits(double cd) {
+
+	unsigned int c = abs(cd);
+	unsigned int cBits = 0x80000000;
+	cd < 0 ? cBits = cBits - c : cBits = c & cBits;
+
+	return cBits;
+}
+
+void MeshObj::FindMeInTile() {
+	Tile* tile = scene->FindTileForPosition(this->center, this->Position);
+	if (whatTile) {
+		if (&whatTile == &tile) {
+			//already added to this tile
+			std::cout << "No tile reallocation \n";
+			return;
+		}
+		whatTile->meshIDs[whereInTile] = std::move(whatTile->meshIDs.back());
+		whatTile->meshIDs.pop_back();
+	}
+	whereInTile = tile->meshIDs.size();
+	tile->meshIDs.push_back(this->meshID);
+	whatTile = tile;
+}
+
+MeshObj::MeshObj(const std::vector<AVertex>& vertices, size_t VertexNumber, const std::vector<int>& indicies, int VertIndexNumber, Scene* _scene) {
+	//std::cout << "C -> Mesh \n";
 	
 	scene = _scene;
+	scene->AssignMesh(this);
 
 	const float div = 1.0f / (float)VertexNumber;
 
@@ -75,39 +130,11 @@ MeshObj::MeshObj(const std::vector<AVertex>& vertices, int VertexNumber, const s
 		vertexStoreLocation.vertIndicies.push_back((GLuint) indicies[i] + vertIndiciesCount);
 		this->vertIndicies.push_back((GLuint) indicies[i] + vertIndiciesCount);
 	}
+
 	CalculateSurfaceNormals(VertIndexNumber, vertexStoreLocation.WorldVertices, this->vertIndicies);
-	scene->AssignMesh(this);
 
-	double cxd = (double)center.lx + (double)center.hx;
-	double czd = (double)center.lz + (double)center.hz;
-	unsigned int cx = abs( cxd );
-	unsigned int cz = abs( czd );
-	unsigned int cBitsX = 0x80000000;
-	unsigned int cBitsZ = 0x80000000;
-	cxd < 0 ? cBitsX = cBitsX - cx : cBitsX = cx & cBitsX;
-	czd < 0 ? cBitsZ = cBitsZ - cz : cBitsZ = cz & cBitsZ;
+	FindMeInTile();
 
-	// Start at bit START_TILE_LEVEL
-	// Continue shifting until you reach MAX_TILE_LEVEL
-	int lvl = START_TILE_LEVEL;
-	unsigned int bin = 1 << (32 - START_TILE_LEVEL);
-	Tile* tile = scene->WorldRoot;
-	while (lvl < MAX_TILE_LEVEL) {
-
-		short int bitX = (cBitsX & bin) >> (32 - lvl);
-		short int bitZ = (cBitsZ & bin) >> (32 - lvl);
-
-		tile = tile->Divisions[bitX][bitZ];
-
-		lvl++;
-		bin = bin >> 1;
-	}
-	if (tile) { 
-		tile->meshIDs.push_back(this->meshID); 
-	}
-	else { 
-		std::cout << "tile not found \n"; 
-	}
 }
 
 void MeshObj::UpdVectors() {
@@ -160,6 +187,8 @@ void MeshObj::UpdVectors() {
 	}
 
 	CalculateSurfaceNormals(vertIndicies.size(), WrldVertices, this->vertIndicies);
+
+	FindMeInTile();
 }
 
 
@@ -200,8 +229,33 @@ void Tile::DivideTile(uint16_t i, uint16_t j) {
 	Divisions[i][j] = tile;
 }
 
+void Scene::RecurseInTiles(std::vector<MeshObj*>& TileMeshes, Tile* tile) {
+	if (tile != nullptr) {
+		if (tile->meshIDs.size() != 0) {
+			for (int& meshID : tile->meshIDs) {
+				if (meshID != -1) {
+					TileMeshes.push_back(this->getMeshes()[meshID]);
+				}
+				else {
+					std::cout << "no mesh found\n";
+				}
+			}
+		}
+		RecurseInTiles(TileMeshes, tile->Divisions[0][0]);
+		RecurseInTiles(TileMeshes, tile->Divisions[0][1]);
+		RecurseInTiles(TileMeshes, tile->Divisions[1][0]);
+		RecurseInTiles(TileMeshes, tile->Divisions[1][1]);
+	}
+}
+
+std::vector<MeshObj*> Scene::GetTileMeshes(Tile* startTile) {
+	std::vector<MeshObj*> TileMeshes;
+	RecurseInTiles(TileMeshes, startTile);
+	return TileMeshes;
+}
+
 Scene::Scene() {
-	std::cout << "C -> Scene \n";
+	//std::cout << "C -> Scene \n";
 	WorldRoot = new Tile(nullptr, 0, 0, START_TILE_LEVEL);
 }
 
@@ -227,6 +281,50 @@ void Scene::AssignMesh(MeshObj* mesh) {
 std::vector<MeshObj*>& Scene::getMeshes() {
 	return Meshes;
 }
+
+Tile* Scene::FindTileForPosition(AVertex center, AVector3 Position) {
+	double cxd = (double)center.lx + (double)center.hx + Position.x;
+	double czd = (double)center.lz + (double)center.hz + Position.z;
+	unsigned int cBitsX = getCBits(cxd);
+	unsigned int cBitsZ = getCBits(czd);
+
+	// Start at bit START_TILE_LEVEL
+	// Continue shifting until you reach MAX_TILE_LEVEL
+	int lvl = START_TILE_LEVEL;
+	unsigned int bin = 1 << (32 - START_TILE_LEVEL);
+	Tile* tile = this->WorldRoot;
+	while (lvl < MAX_TILE_LEVEL) {
+
+		short int bitX = (cBitsX & bin) >> (32 - lvl);
+		short int bitZ = (cBitsZ & bin) >> (32 - lvl);
+
+		tile = tile->Divisions[bitX][bitZ];
+
+		//std::cout << bitX << bitZ << "|";
+
+		lvl++;
+		bin = bin >> 1;
+	}
+	//std::cout << "\n";
+	if (tile == nullptr) {
+		std::cout << "Tile not found \n";
+		return nullptr;
+	}
+	return tile;
+}
+
+
+Instance* Scene::CreateInstance(Blueprint* temp, AVector3 pos) {
+	Instance newInst(temp);
+	newInst.Position = pos;
+
+	Tile* targetTile = this->FindTileForPosition(temp->center, pos);
+
+	targetTile->Instances.push_back(&newInst);
+	return targetTile->Instances.back();
+}
+
+
 
 
 std::vector<AVertex>& VertexStorage::getWorldVertices() {

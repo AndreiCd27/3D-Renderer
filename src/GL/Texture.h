@@ -1,5 +1,8 @@
 #pragma once
 
+#include "pch.h"
+#include "framework.h"
+
 #include "shaderClass.h"
 
 class Texture {

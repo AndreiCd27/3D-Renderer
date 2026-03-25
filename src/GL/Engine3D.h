@@ -1,8 +1,5 @@
 #pragma once
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
 #include "stl_reader.h" // .stl geometry file reader by sreiter https://github.com/sreiter/stl_reader
 
 #include "shaderClass.h"
@@ -14,6 +11,11 @@
 #include "Texture.h"
 
 //bool _Engine3D_Started = false;
+
+struct {
+	std::vector<AVertex> vert;
+	std::vector<GLuint> indicies;
+} DATA_3D_PAIR;
 
 class Engine3D {
 private:
@@ -84,6 +86,8 @@ public:
 
 	Scene* getScene();
 
+	GLFWwindow* getWindow() { return window; }
+
 	inline int windowShouldClose() { return glfwWindowShouldClose(window); };
 	inline Shader& getShader() { return shaderProgram; };
 
@@ -110,6 +114,8 @@ public:
 	void shadowPass();
 
 	void renderPass(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO);
+
+	void loadChunks(Tile* from);
 
 	//void ConfigureShaderAndMatrices(AVector3& pos);
 	//void RenderShadowMap(const unsigned int SHADOW_WIDTH, const unsigned int SHADOW_HEIGHT);

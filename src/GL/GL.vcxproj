@@ -158,6 +158,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="EBO.cpp" />
     <ClCompile Include="Engine3D.cpp" />
+    <ClCompile Include="GeometryBasics.cpp" />
     <ClCompile Include="GeometryLoader.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="Main.cpp" />
@@ -174,7 +175,11 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="EBO.h" />
     <ClInclude Include="Engine3D.h" />
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="GeometryBasics.h" />
     <ClInclude Include="GeometryLoader.h" />
+    <ClInclude Include="MultiArray.h" />
+    <ClInclude Include="pch.h" />
     <ClInclude Include="shaderClass.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="stl_reader.h" />

@@ -1,10 +1,7 @@
 #pragma once
 
-#include <glad/glad.h>
-#include <string>
-#include <fstream>
-#include <iostream>
-#include <cerrno>
+#include "pch.h"
+#include "framework.h"
 
 std::string get_file_contents(const char* filename);
 

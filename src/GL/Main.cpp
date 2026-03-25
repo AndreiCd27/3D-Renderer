@@ -36,6 +36,10 @@ int main() {
 	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, 25.0f, 0, 0, 255));
 	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, -25.0f, 0, 0, 255));
 
+	std::vector<GLuint> ind = { 0,1,2, 2,3,0 };
+
+	Blueprint insTemp(VERTICES, ind);
+
 	MeshObj* plane2 = engine.CreatePrism(VERTICES, 4, 80.0f);
 
 	VERTICES.clear();
@@ -70,6 +74,8 @@ int main() {
 	engine.setupShaders(engine.getDrawStyle("dynamic")); //Uses Camera Class and Mesh Instances
 
 	std::cout << "Shaders created\n";
+
+	// TEST: engine.getScene()->GetTileMeshes(engine.getScene()->WorldRoot->Divisions[1][1]);
 	
 	//engine.setupInstanceVBO(cntOfObj);
 
@@ -81,10 +87,29 @@ int main() {
 	double prevTime = glfwGetTime();
 
 	int ROT = 0;
-	long long int frameCounter = 0;
+
+	//FOR FPS COUNTER
+	double PREV_TIME = 0.0f;
+	double CURRENT_TIME = 0.0f;
+	double timeDifference;
+	int frameCounter = 0;
+	const double FPSsampleTime = 1.0f / 20.0f;
 
 	// MAIN GAME LOOP
 	while (!engine.windowShouldClose()) {
+
+		CURRENT_TIME = glfwGetTime();
+		timeDifference = CURRENT_TIME - PREV_TIME;
+		frameCounter++;
+		if (timeDifference >= FPSsampleTime) {
+			std::string FPS = std::to_string((1.0f / timeDifference) * frameCounter);
+			std::string msPerFrame = std::to_string((timeDifference / frameCounter) * 1000);
+			std::string winTitle = "WINDOW | " + FPS + " FPS | " + msPerFrame + " ms/frame";
+			glfwSetWindowTitle(engine.getWindow(), winTitle.c_str());
+			PREV_TIME = CURRENT_TIME;
+			frameCounter = 0;
+		}
+
 
 		engine.initGameFrame(); // setting up the background color
 
@@ -109,7 +134,6 @@ int main() {
 				(lightReflactance + sunsetCoef / 2.0f) * 0.5f * (lightReflactance), 
 				lightReflactance, 1.0f);
 			ROT+=4;
-			frameCounter++;
 		}
 
 		engine.shadowPass();

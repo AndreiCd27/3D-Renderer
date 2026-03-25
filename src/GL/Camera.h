@@ -1,26 +1,10 @@
 #pragma once
 
+#include "pch.h"
+#include "framework.h"
+
 #include "shaderClass.h"
-
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-// Could have used glm
-class AVector3 {
-public:
-	double x = 0.0f, y = 0.0f, z = 0.0f;
-	AVector3() = default;
-	AVector3(double _x, double _y, double _z) : x(_x), y(_y), z(_z) {};
-	~AVector3() = default;
-	AVector3 operator+(const AVector3& dr);
-	AVector3 operator*(const AVector3& dr);
-	AVector3 operator*(const float& scalar);
-	AVector3& operator+=(const AVector3& dr);
-	AVector3 operator^(const AVector3& dr); // Used for cross product
-	AVector3 Normalize();
-};
+#include "GeometryBasics.h"
 
 // Here we store our view and projection matrix and we forward it to Main.cpp
 // Such that we only store the resulting matrix for each instance,
@@ -40,8 +24,8 @@ public:
 	float Yaw, Pitch;
 	Mat4Pair mat4Tuple;
 
-	float speed = 0.1f;
-	float sensitivity = 0.05f;
+	float speed = 0.2f;
+	float sensitivity = 0.1f;
 
 	GLuint camPosUniformLoc;
 	GLuint perspMat4Loc;

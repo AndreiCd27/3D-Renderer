@@ -1,3 +1,7 @@
+
+#include "pch.h"
+#include "framework.h"
+
 #include "shaderClass.h"
 
 // Reads a text file and outputs a string with everything in the text file
@@ -20,6 +24,8 @@ std::string get_file_contents(const char* filename)
 // Constructor that build the Shader Program from 2 different shaders
 void Shader::Setup(const char* vertexFile, const char* fragmentFile)
 {
+	//std::cout << "Starting shader setup \n";
+
 	// Read vertexFile and fragmentFile and store the strings
 	std::string vertexCode = get_file_contents(vertexFile);
 	std::string fragmentCode = get_file_contents(fragmentFile);
@@ -55,6 +61,8 @@ void Shader::Setup(const char* vertexFile, const char* fragmentFile)
 	glLinkProgram(ID);
 	// Checks if Shaders linked succesfully
 	compileErrors(ID, "PROGRAM");
+
+	//std::cout << "Shader Program compiled \n";
 
 	// Delete the now useless Vertex and Fragment Shader objects
 	glDeleteShader(vertexShader);
