@@ -1,7 +1,6 @@
 #pragma once
 
-#include "pch.h"
-#include "framework.h"
+#include "precompile.h"
 
 #include "VBO.h"
 
@@ -11,7 +10,7 @@ public:
 	VAO() { std::cout << "C -> VAO \n"; };
 
 	void Setup();
-	void LinkVBO(VBO& VBO, GLuint layout, GLuint numComp, GLenum type, GLsizei stride, void* offset);
+	void LinkVBO(VBO& VBO, GLuint layout, GLuint numComp, GLenum type, GLsizei stride, bool NORMALIZED, void* offset);
 	void Bind();
 	void Unbind();
 	void Delete();

@@ -11,12 +11,15 @@ struct Handle {
 	int offset = 0;
 	int size = 0;
 	int capacity = 0;
+	int id = -1;
 };
 
 class ArrayOrganizerException : public std::runtime_error {
 public:
 	ArrayOrganizerException(const std::string& Msg, int errorCode) :
-		std::runtime_error("[ ARRAY_ORGANIZER_ERROR ] -> ERR_" + std::to_string(errorCode) + " : " + Msg) {};
+		std::runtime_error("[ ARRAY_ORGANIZER_ERROR ] -> ERR_" + std::to_string(errorCode) + " : " + Msg) {
+		std::cerr << "[ ARRAY_ORGANIZER_ERROR ] -> ERR_" + std::to_string(errorCode) + " : " + Msg;
+	};
 };
 
 template <typename T>
@@ -92,19 +95,17 @@ public:
 		// Capacity SHOULD be a power of 2 for correct memory alignment,
 		// But it is not enforced
 
-		int h_off = 0;
-		int lastIndex = Handles.size() - 1;
-		if (lastIndex >= 0) {
-			Handle& last = Handles[lastIndex];
-			h_off = last.capacity + last.offset;
-		}
+		int h_off = (int) Array.size();
 
-		Handles.push_back({ h_off , 0, capacityPow2 });
+		Handle h = { h_off , 0, capacityPow2, HandleID };
+		Handles.push_back(h);
 
 		Array.resize(h_off + capacityPow2);
 
-		ID_TO_INDEX[HandleID] = lastIndex + 1;
+		ID_TO_INDEX[HandleID] = Handles.size() - 1;
 		INDEX_TO_ID.push_back(HandleID);
+
+		std::cout << "Handle: " << HandleID << " Offset: " << h.offset << "\n";
 	}
 
 	void MoveBefore(int beforeHandleID, int HandleID) {
@@ -162,27 +163,43 @@ public:
 		Array[h.offset + h.size] = data;
 		h.size++;
 	}
-
+	
 	void PushMultipleData(int HandleID, std::vector<T>& multidata) {
 		int HandleIndex = ID_TO_INDEX[HandleID];
 
-		Handle& h = Handles[HandleIndex];
+		Handle h = Handles[HandleIndex];
 
-		int pow = 0;
-		while ( h.size + multidata.size() > h.capacity * (1<<pow) ) {
-			pow++;
-		}
-		if (pow == 1) {
-			DoubleInSize(HandleIndex);
-		}
-		else {
-			ReservePow2(HandleIndex, pow);
+		int oldSize = Array.size();
+
+		if ( h.size + multidata.size() > h.capacity ) {
+			int capacityTarget = h.capacity;
+			if (capacityTarget == 0) capacityTarget = multidata.size();
+			while (h.size + multidata.size() > capacityTarget) {
+				capacityTarget <<= 1;
+				
+			}
+
+			int incrrease = capacityTarget - h.capacity;
+			Array.resize(oldSize + incrrease);
+
+			if (HandleIndex < Handles.size() - 1) {
+				auto from = Array.begin() + h.offset + h.capacity;
+				auto to = Array.begin() + oldSize;
+				std::copy_backward(from, to, Array.end());
+
+				for (int i = HandleIndex + 1; i < Handles.size(); i++) {
+					Handles[i].offset += incrrease;
+				}
+			}
+			h.capacity = capacityTarget;
+			Handles[HandleIndex].capacity = capacityTarget;
 		}
 
-		std::copy(multidata.begin(), multidata.end(), Array.begin() + h.offset + h.size);
-		h.size += multidata.size();
+		std::copy(multidata.begin(), multidata.end(), Array.begin() + Handles[HandleIndex].offset + h.size);
+		Handles[HandleIndex].size += multidata.size();
+		std::cout << " [MultiArray.h PushMultipleData()]\n Pushed " << multidata.size() << " elements into Array (OLD SIZE: " << oldSize << ") NEW SIZE: " << Array.size()<<"\n";
 	}
-
+	
 	void print() {
 		int i = 0;
 		for (Handle& h : Handles) {
@@ -196,7 +213,16 @@ public:
 		if (iterator == ID_TO_INDEX.end()) {
 			throw ArrayOrganizerException("Invalid ID " + std::to_string(HandleID), 0);
 		}
-		return Handles[ID_TO_INDEX[HandleID]];
+		return Handles[iterator->second]; // Avoid another look-up in the unordered map
+	}
+
+	const T* GetPointerFromHandle(int HandleID) {
+		auto iterator = ID_TO_INDEX.find(HandleID);
+		if (iterator == ID_TO_INDEX.end()) {
+			throw ArrayOrganizerException("Invalid ID " + std::to_string(HandleID), 0);
+		}
+		int i = Handles[ID_TO_INDEX[HandleID]].offset;
+		return &Array[i];
 	}
 
 	std::vector<T>& GetMultiArray() {
@@ -205,5 +231,20 @@ public:
 
 	bool ContainsHandle(int HandleID) {
 		return !(ID_TO_INDEX.find(HandleID) == ID_TO_INDEX.end());
+	}
+	/*
+	const int GetSizeBetweenHandles(int HandleID_0, int HandleID_1) {
+		int I_START = ID_TO_INDEX[HandleID_0];
+		int I_END = ID_TO_INDEX[HandleID_1];
+		int SIZE = Handles[I_END].offset - Handles[I_START].offset + Handles[I_END].size;
+		if (SIZE < 0) {
+			throw ArrayOrganizerException("Handles given are not in order", 1);
+		}
+		return SIZE;
+	}
+	*/
+
+	std::vector<Handle>& GetAllHandles() {
+		return Handles;
 	}
 };

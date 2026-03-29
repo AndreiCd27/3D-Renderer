@@ -1,8 +1,9 @@
 #pragma once
 
-#include "pch.h"
-#include "framework.h"
 
+#include "precompile.h"
+
+#include "GeometryBasics.h"
 #include "MultiArray.h"
 #include "Camera.h"
 #include "VBO.h"
@@ -13,10 +14,9 @@
 #define START_TILE_LEVEL 10
 
 class Blueprint;
-class Instance;
 class Tile;
+class Instance;
 class Scene;
-class MeshObj;
 
 class BlueprintException : public std::runtime_error {
 public:
@@ -32,8 +32,11 @@ class Blueprint {
 
 	static int contor; // Used to set templateID, simple incremented variable, starting at 0
 
-	GeomData Geometry; // Stores the vertices and indicies of the blueprint, any instance of this blueprint
+	// Stores the vertices and indicies of the blueprint, any instance of this blueprint
 	// Has this same geometry, but with different Position, Rotation and Scale
+	int VerticesHandleID;  // FROM templateID TO vertices_buffer in Scene
+	int IndiciesHandleID;  // FROM templateID TO indicies_buffer in Scene
+	// Toghether, they form the geometry that define this object
 
 	int templateID; // TemplateID is used in combination with TileID to form a HandleID
 	// HandleID will be the key to access data shared between tiles and blueprints 
@@ -41,195 +44,106 @@ class Blueprint {
 	// Only 4095 Blueprints may be created, the rest 20 bits are reserved for tileIDs
 	// A simple OR (|) operation can generate the key we need for Blueprint A in Tile B 
 	// ( HandleID = A | ( B << 12 ) )
-public:
-	AVertex center;
-	Blueprint(const std::vector<AVertex>& vertices, const std::vector<GLuint>& indicies);
 
+	const char* Alias;
+
+	Blueprint();
+
+public:
+
+	int GetID();
+
+	AVertex Center;
 	static const int GetShiftComponent();
+
+	void SetColor(int R, int G, int B, int A);
+
+	static void CalculateSurfaceNormals(std::vector<AVertex>& worldVert, std::vector<GLuint>& indicies);
+
+	friend class Scene;
 };
 
-class MeshVertexObject {
+// ABSTRACT CLASS ENTITY
+class Entity {
+	static int contor;
+	int EID;
+	std::string TagName = "";
+	bool Active = true;
 protected:
-	VBO MeshVBO;
-	EBO MeshEBO;
-	GeomData Geometry;
+	Scene* ParentScene = nullptr;
 public:
+	Entity(Scene* scene, std::string _TagName);
+	virtual ~Entity() = default;
 
+	virtual void Update() = 0;
 };
 
-class Instance {
-	int instanceID = -1;
-	AVector3 Rotation; // Rotation in degrees for X,Y,Z axis
-	AVector3 Size; // Scale Vector for X,Y,Z axis
-	AVector3 Position; // Translate Vector for X,Y,Z axis
+
+// ABSTRACT CLASS TRANSFORM
+class Transform : public Entity {
+	void Defaults();
+protected:
+	AVector3 Rotation = AVector3(0.0f, 0.0f, 0.0f); // Rotation in degrees for X,Y,Z axis
+	AVector3 Size = AVector3(1.0f, 1.0f, 1.0f); // Scale Vector for X,Y,Z axis
+	AVector3 Position = AVector3(0.0f, 0.0f, 0.0f); // Translate Vector for X,Y,Z axis
 	AColor3 Color;
-	const Blueprint* Template;
 public:
-	Instance(const Blueprint* Template);
-	friend Scene;
+	Transform(Scene* scene);
+	Transform(Scene* scene, std::string TagName);
+	virtual ~Transform() = default;
 };
 
-class VertexStorage {
-private:
-	std::vector<AVertex> WorldVertices;
-	std::vector<GLuint> vertIndicies;
+class Instance : public Transform {
+
+	Blueprint* Template = nullptr; // Blueprint object
+	//Add more stuff, like materials and textures
+	Tile* tile = nullptr; // Tile it belongs in, calculated through Position
+	int handleOffset = 0; 
+	// The offset calculated from the coresponding HandleID
+
+	void Update();
+
 public:
-	VertexStorage() = default;
-	~VertexStorage() = default;
-	std::vector<GLuint>& getVertIndicies();
-	std::vector<AVertex>& getWorldVertices();
-	friend class MeshObj;
+	Instance(Blueprint* _Template, Scene* scene, std::string TagName);
+	Instance(Blueprint* _Template, Scene* scene);
+
+	void SetPosition(AVector3 _Position);
+	void SetRotation(AVector3 _Rotation);
+	void SetSize(AVector3 _Size);
+	void SetColor(int R, int G, int B, int A);
+	void SetColor(AColor3 _Color);
+	void SetTile(Tile* _tile);
+
+	int GetBlueprintID();
+
+	AVector3 GetPosition();
+	AVector3 GetRotation();
+	AVector3 GetSize();
+
+	void SetHandleOffset(int offset);
+
+};
+
+class InstanceData {
+private:
+	glm::mat4 matrix;
+	AColor3 RGBA; // 4 bytes
+	A_UV UV; // 4 bytes
+public:
+	InstanceData() = default;
+	InstanceData(AVector3 Position, AVector3 Rotation, AVector3 Scale);
+	void SetMatrix(AVector3 Position, AVector3 Rotation, AVector3 Scale);
+	void SetColor(AColor3 _RGBA);
+};
+
+class UniqueGeom : public Transform {
+	// Geometry remains unchanged, stored directly as geometry
+};
+
+class StaticGeom : public Entity {
+
 };
 
 class MeshObj {
-private:
-	AVertex center;
-
-	std::vector<AVertex> localVertices;
-
-	static MeshVertexObject MVO;
-
-	int verLocation;
-
-	int meshID = -1; // Stays -1 until it is assigned to a scene 
-	Scene* scene; // Which scene it belongs to
-	Tile* whatTile = nullptr;
-	int whereInTile = -1; //Where our mesh is in the tile meshIDs vector
-
-	bool visible = false;
-public:
-	std::vector<GLuint> vertIndicies;
-	AVector3 Rotation; // Rotation in degrees for X,Y,Z axis
-	AVector3 Size; // Scale Vector for X,Y,Z axis
-	AVector3 Position; // Translate Vector for X,Y,Z axis
-	AColor3 Color;
-
-	void FindMeInTile();
-	void UpdVectors(); // Call this function whenever you want to update the verticies with Rotation and Size
-
-	MeshObj(const std::vector<AVertex>& vertices, size_t VertexNumber, const std::vector<int>& indicies, int VertIndexNumber, Scene* _scene);
-	~MeshObj() { localVertices.clear(); vertIndicies.clear(); };
-	inline void setMeshID(int _meshID);
-	inline size_t getSize() { return vertIndicies.size(); };
-};
-
-
-class Tile {
-private:
-	static const int shiftComponent;
-
-	Tile* Parent;
-	uint16_t TileX, TileZ;
-	uint16_t Level = 0;
-public:
-
-	// Each tile/chunk has empty VBO objects, and we setup them dynamically
-	// Based on the user's preferences (more on that later)
-	// At MAX_TILE_LEVEL, we automaticall setup the VBOs
-
-	// InstanceVBO: here we store transformation matricies (mat4)
-	// Calculated for each instance according to:
-	// Position, Rotation, Scale vectors
-	// Additional color channel may be included
-	// Useful for instances that need to be replicated thousands of times
-	// And have the same geometry, but different transform matricies
-	// Thus, they only need ONE EBO, but every instance TYPE
-	// Must have their own EBO, so avoid a lot of instance types,
-	// As this makes the engine have to do more draw calls
-	// I recommend 50-100 instance types <=> 50-100 draw calls
-	// Think of: trees, cubes, car models, particles etc.
-	// PROs: 
-	//  - many, many instances with less GPU calls, so better performance
-	//  - very good for dynamic instances that update almost every frame
-	//  - dynamic tile reallocation, moving the object moves the refrence to it
-	//  from the previous tile to another tile
-	// CONs: 
-	//	- can have too many draw calls if there are many instance types
-	//  - can't manipulate individual verticies, only transformations are allowed
-	AInterval tileInterval; // This specifies a subarray from the global instanceVBO
-	// Only instances that belong to this tile will be drawn by specifying the start
-	// And size of our matrix subarray
-	// We use glDrawElementsInstancedBaseVertexBaseInstance
-
-	// UniqueVBO: here we store mesh objects that are replicated less
-	// The vertex data and vertex indicies are stored directly into
-	// VertexStorage, so updating transform vectors may be expensive
-	// BUT, we can have thousands of different mesh types with
-	// different geometry
-	// Thus, unique meshes should be created once and copied less
-	// Think of: complex meshes, high-resolution items, etc.
-	// PROs:
-	//  - best for unique meshes that are sparsely located in the map
-	//  - can have complex geometry and allows many types of objects
-	//  - good performance for mostly static (but not always static) meshes
-	//  - dynamic tile reallocation, moving the object moves the refrence to it
-	//  from the previous tile to another tile
-	// CONs:
-	//  - meshes can have overhead if constantly updated and transformed,
-	//  - beacause every vertex must be updated
-	//  - not very space efficient
-	VBO UniqueVBO;
-	GeomData UniqueData;
-
-	// StaticVBO: here we store meshes that can't be updates
-	// Uses GL_STATIC_DRAW, and can have complex geometry per chunk
-	// Does not have transform vectors such as Position, Rotation, Scale
-	// Individual verticies may be changed
-	// Think of: terrain, mountains, buildings etc.
-	// Can't be reallocated to another tile, completly chunk-static
-	// PROs:
-	//  - best for static objects
-	//  - can have complex geometry, good performance
-	//  - user can manipulate individual verticies
-	// CONs:
-	//  - can't be transformed/moved
-	//  - requires a lot of storing space
-	//  - does require an EBO per chunk/tile
-	//  - vertex modifications are complex
-	VBO StaticVBO;
-	EBO StaticEBO;
-	GeomData StaticData;
-
-	std::vector<int> meshIDs;
-	Tile* Divisions[2][2] = { nullptr };
-
-	Tile(Tile* _Parent, uint16_t _TileX, uint16_t _TileZ, uint16_t _Level);
-	~Tile();
-	void DivideTile(uint16_t i, uint16_t j);
-	uint16_t getLevel() { return Level; }
-};
-
-class Scene {
-private:
-
-	VBO instanceVBO; // Here we bind the transformation matricies for our instances
-	VBO geomVBO; // Here we bind the vertices for our geometry objects
-	EBO geomEBO; // Here we bind the vertex indicies for our geometry objects
-
-	// Handles are generated for every Blueprint and for every Tile
-	ArrayOrganizer<glm::mat4> instanceOrganizer;
-
-	// Handles are generated for every Tile
-	ArrayOrganizer<AVertex> VBO_Organizer;
-	ArrayOrganizer<GLuint> EBO_Organizer;
-
-	std::vector<int> meshIDs;
-	std::vector<MeshObj*> Meshes;
-	VertexStorage vertStoreLocation;
-public:
-
-	Tile* WorldRoot = nullptr;
-
-	Scene();
-	~Scene();
-	void deleteWorldRoot();
-	void RecurseInTiles(std::vector<MeshObj*>& TileMeshes, Tile* tile);
-	std::vector<MeshObj*> GetTileMeshes(Tile* startTile);
-	void AssignMesh(MeshObj* mesh);
-	VertexStorage& getVertStoreLocation();
-	std::vector<MeshObj*>& getMeshes();
-
-	Tile* FindTileForPosition(AVertex center, AVector3 Position);
-
-	Instance* CreateInstance(Blueprint* temp, AVector3 pos);
+	int m;
 };

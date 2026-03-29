@@ -127,8 +127,7 @@
 #ifndef __H__STL_READER
 #define __H__STL_READER
 
-#include "pch.h"
-#include "framework.h"
+#include "precompile.h"
 
 #ifdef STL_READER_NO_EXCEPTIONS
 #define STL_READER_THROW(msg) return false;

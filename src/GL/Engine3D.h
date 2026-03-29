@@ -3,7 +3,7 @@
 #include "stl_reader.h" // .stl geometry file reader by sreiter https://github.com/sreiter/stl_reader
 
 #include "shaderClass.h"
-#include "GeometryLoader.h"
+#include "GeometryOrganizer.h"
 #include "VBO.h"
 #include "EBO.h"
 #include "VAO.h"
@@ -35,6 +35,7 @@ private:
 
 	// Shader
 	Shader shaderProgram;
+	Shader instanceProgram;
 	VAO VAO_1;
 	VBO VBO_1;
 	EBO EBO_1;
@@ -44,9 +45,6 @@ private:
 	GLuint shadowMapLocation;
 
 	GLuint lightDirUnifLoc;
-
-	// Stores projection matrices of meshes relative to the camera
-	std::vector<glm::mat4> modelMatrices;
 
 	// Appearance
 	struct {
@@ -66,16 +64,19 @@ public:
 
 	int setupGLFW(const int WINDOW_WIDTH, const int WINDOW_HEIGHT, const char* WINDOW_TITLE);
 
-	void setCamera(double posX, double posY, double posZ);
-	void setSunCamera(double posX, double posY, double posZ);
+	void setCamera(float posX, float posY, float posZ);
+	void setSunCamera(float posX, float posY, float posZ);
 
-	void setCamera(double posX, double posY, double posZ, float yaw, float pitch);
+	void setCamera(float posX, float posY, float posZ, float yaw, float pitch);
 
 	const int getDrawStyle(const char* style);
 
-	void setupShaders(const int drawStyle);
+	void setupShaders();
 
-	void setupInstanceVBO(const int cntOfObj);
+	void setupGeometryArrayObjects(const int drawStyle);
+
+	void setupInstanceVBO();
+	void DrawInstances(Blueprint* BLUEPRINT, Tile* TILE);
 
 	//void setupShadowMap(const unsigned int SHADOW_WIDTH, const unsigned int SHADOW_HEIGHT);
 
@@ -88,26 +89,15 @@ public:
 
 	GLFWwindow* getWindow() { return window; }
 
-	inline int windowShouldClose() { return glfwWindowShouldClose(window); };
-	inline Shader& getShader() { return shaderProgram; };
-
-	inline AVertex GetAVertex(double x, double y, double z, int r, int g, int b) {
-		float xhigh = (float)x; float xlow = (float)(x - (double)xhigh);
-		float zhigh = (float)z; float zlow = (float)(z - (double)zhigh);
-		return { xlow, xhigh, zlow, zhigh, (float)y, 
-			(float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, 
-			0.0f, 0.0f, 0.0f, 0.0f 
-		};
+	inline int windowShouldClose() { 
+		return glfwWindowShouldClose(window); 
 	}
-	/*
-	inline AVertex GetAVertex(float x, float y, float z, int r, int g, int b) {
-		return { x, 0.0f, z, 0.0f, y, (float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f };
+	
+	inline Shader& getShader() { 
+		return shaderProgram; 
 	}
-	*/
 
-	const GLuint GetUniformLocation(const char* uniformName);
-
-	// OTHERS
+	//OTHERS
 
 	void initGameFrame();
 
@@ -115,19 +105,24 @@ public:
 
 	void renderPass(float FOVdeg, float zNear, float zFar, bool UPDATE_VBO);
 
-	void loadChunks(Tile* from);
+	void DrawAllInstances();
+
+	Tile* getVisibleCameraFrustum(int r);
+
+	//void loadChunks(Tile* from);
 
 	//void ConfigureShaderAndMatrices(AVector3& pos);
 	//void RenderShadowMap(const unsigned int SHADOW_WIDTH, const unsigned int SHADOW_HEIGHT);
 
 	void EngineTerminate();
 
-	MeshObj* LoadSTLGeomFile(const char *filePath, float scale);
+	Blueprint* LoadSTLGeomFile(const char* filePath, float scale);
+	/*
 
 	MeshObj* CreateMesh(const std::vector<AVertex>& vertices, int VertexNumber, const std::vector<int>& indicies, int VertIndexNumber);
 	MeshObj* CreatePrism(const std::vector<AVertex>& vertices, int VertexNumber, float height);
 	MeshObj* CreateRectPrism(double cx, double cy, double cz, float length, float width, float height);
 	MeshObj* CreateCube(double cx, double cy, double cz, float length);
-
+	*/
 	void DEBUG_showCameraVectors();
 };

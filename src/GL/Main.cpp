@@ -21,49 +21,57 @@ int main() {
 	engine.setBackground(0.2f, 0.3f, 0.8f, 1.0f);
 
 	// HERE WE CREATE OUR OBJECTS /////////////////////////////////////////////////
-
-	VERTICES.push_back(engine.GetAVertex(-300.0f, -50.0f, -300.0f, 0, 255, 0));
-	VERTICES.push_back(engine.GetAVertex(-300.0f, -50.0f, 200.0f, 0, 255, 0));
-	VERTICES.push_back(engine.GetAVertex(200.0f, -50.0f, 200.0f, 0, 255, 0));
-	VERTICES.push_back(engine.GetAVertex(200.0f, -50.0f, -300.0f, 0, 255, 0));
-
-	MeshObj* plane = engine.CreatePrism(VERTICES, 4, 50.0f);
-
-	VERTICES.clear();
-
-	VERTICES.push_back(engine.GetAVertex(-25.0f, 0.0f, -25.0f, 0, 0, 255));
-	VERTICES.push_back(engine.GetAVertex(-25.0f, 0.0f, 25.0f, 0, 0, 255));
-	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, 25.0f, 0, 0, 255));
-	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, -25.0f, 0, 0, 255));
-
-	std::vector<GLuint> ind = { 0,1,2, 2,3,0 };
-
-	Blueprint insTemp(VERTICES, ind);
-
-	MeshObj* plane2 = engine.CreatePrism(VERTICES, 4, 80.0f);
-
-	VERTICES.clear();
-
-	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, 25.0f, 255, 0, 255));
-	VERTICES.push_back(engine.GetAVertex(25.0f, 0.0f, 75.0f, 255, 0, 255));
-	VERTICES.push_back(engine.GetAVertex(75.0f, 0.0f, 75.0f, 255, 0, 255));
-	VERTICES.push_back(engine.GetAVertex(75.0f, 0.0f, 25.0f, 255, 0, 255));
-
-	MeshObj* plane3 = engine.CreatePrism(VERTICES, 4, 50.0f);
-
-	VERTICES.clear();
-
-	MeshObj * humanMesh = engine.LoadSTLGeomFile("BASEmodel.stl", 20.0f);
+	
+	Blueprint* humanMesh = engine.LoadSTLGeomFile("BASEmodel.stl", 20.0f);
 	if (humanMesh) {
 		std::cout << "Created: Human \n";
-		humanMesh->Position = AVector3(-60.0f, 50.0f, 5.0f);
-		humanMesh->UpdVectors();
+		for (int i = 0; i < 10; i++) {
+			Instance* human = engine.getScene()->CreateInstance(humanMesh, AVector3());
+			human->SetPosition(AVector3(-160.0f + i * 40.0f, 50.0f, 5.0f));
+			human->SetColor(i * 20, 255 - i * 20, 0, 255);
+			human->SetRotation(AVector3(-90.0f, 0.0f, 0.0f));
+		}
+	}
+	
+
+	VERTICES.clear();
+
+	VERTICES.push_back(AVertex(-25.0f, -5.0f, -25.0f, 0, 255, 0, 255));
+	VERTICES.push_back(AVertex(-25.0f, -5.0f, 25.0f, 0, 255, 0, 255));
+	VERTICES.push_back(AVertex(25.0f, -5.0f, 25.0f, 0, 255, 0, 255));
+	VERTICES.push_back(AVertex(25.0f, -5.0f, -25.0f, 0, 255, 0, 255));
+	std::vector<GLuint> ind = { 0,1,2, 2,3,0 };
+
+	Blueprint* B2 = engine.getScene()->CreateBlueprint(VERTICES, ind);
+	B2->SetColor(0, 255, 0, 255);
+	Instance* I2 = engine.getScene()->CreateInstance(B2, AVector3(0.0f, 0.0f, 0.0f));
+	I2->SetColor(255, 255, 255, 255);
+	I2->SetPosition(AVector3(0.0f, 10.0f, 0.0f));
+
+	VERTICES.clear();
+	
+	VERTICES.push_back(AVertex(-25.0f, 5.0f, -25.0f, 0, 0, 0, 255));
+	VERTICES.push_back(AVertex(-25.0f, 5.0f, 25.0f, 0, 0, 0, 255));
+	VERTICES.push_back(AVertex(25.0f, 5.0f, 25.0f, 0, 0, 0, 255));
+	VERTICES.push_back(AVertex(25.0f, 5.0f, -25.0f, 0, 0, 0, 255));
+
+
+	Blueprint* B = engine.getScene()->CreateBlueprint(VERTICES, ind);
+	B->SetColor(0, 0, 0, 255);
+
+	for (int i = 0; i < 10; i++) {
+		Instance* I = engine.getScene()->CreateInstance(B, AVector3());
+		I->SetColor(0, i*15, 255, 255);
+		I->SetPosition(AVector3(10.0f * i, 1.0f * i, 10.0f * i));
 	}
 
-	MeshObj* cube = engine.CreateCube(0.0f, 0.0f, 0.0f, 80.0f);
-	cube->Color = { 255, 255, 0 };
-	cube->UpdVectors();
+	VERTICES.clear();
 
+	Instance* plane = engine.getScene()->CreateInstance(B, AVector3());
+	plane->SetPosition(AVector3(0.0f, -20.0f, 0.0f));
+	plane->SetSize(AVector3(20.0f, 20.0f, 20.0f));
+	plane->SetColor(AColor3(50, 255, 25, 255));
+	
 	////////////////////////////////////////////////////////////////////////////////
 
 	std::cout << "Meshes constructed \n";
@@ -71,7 +79,14 @@ int main() {
 	engine.setCamera(0.0f, 80.0f, 120.0f); //Set camera to this position
 	engine.setSunCamera(0.0f, 100.0f, 1.0f);
 
-	engine.setupShaders(engine.getDrawStyle("dynamic")); //Uses Camera Class and Mesh Instances
+	engine.setupShaders(); //Uses Camera Class and Mesh Instances
+
+	std::cout << "VBO Total Bytes: " << engine.getScene()->GetVBO_Organizer().GetMultiArray().size() * sizeof(AVertex) << "\n";
+	std::cout << "EBO Total Bytes: " << engine.getScene()->GetEBO_Organizer().GetMultiArray().size() * sizeof(GLuint) << "\n";
+
+
+	engine.setupGeometryArrayObjects(engine.getDrawStyle("dynamic"));
+	engine.setupInstanceVBO();
 
 	std::cout << "Shaders created\n";
 
@@ -94,6 +109,11 @@ int main() {
 	double timeDifference;
 	int frameCounter = 0;
 	const double FPSsampleTime = 1.0f / 20.0f;
+
+	std::cout << "Instances Size: " << engine.getScene()->GetInstanceOrganizer().GetMultiArray().size() << std::endl;
+	std::cout << "VBO Size: " << engine.getScene()->GetVBO_Organizer().GetMultiArray().size() << std::endl;
+	std::cout << "EBO Size: " << engine.getScene()->GetEBO_Organizer().GetMultiArray().size() << std::endl;
+
 
 	// MAIN GAME LOOP
 	while (!engine.windowShouldClose()) {
@@ -118,16 +138,18 @@ int main() {
 		if (currentTime - prevTime >= _deltaTimeForTIMER) {
 			//engine.DEBUG_showCameraVectors();
 			prevTime = currentTime;
+			/*
 			if (humanMesh) {
 				humanMesh->Rotation = AVector3((-(int)sqrt(ROT*20) % 360 - 180) * 1.0f, 
 					(ROT % 360 - 180) * 1.0f, (-ROT % 360 - 180) *1.0f);
 				humanMesh->UpdVectors();
 			}
-			double sinROT = sin((double)ROT / 1024.0f);
-			double cosROT = cos((double)ROT / 1024.0f);
-			double sinYAW = sin((double)ROT / 1024.0f);
-			double cosYAW = cos((double)ROT / 1024.0f);
-			engine.getCamera(true).Position = { 100.0f * cosROT, 100.0f * sinROT, 50.0f };
+			*/
+			float sinROT = sin((double)ROT / 1024.0f);
+			float cosROT = cos((double)ROT / 1024.0f);
+			float sinYAW = sin((double)ROT / 1024.0f);
+			float cosYAW = cos((double)ROT / 1024.0f);
+			engine.getCamera(true).Position = AVector3( 100.0f * cosROT, 100.0f * sinROT, 50.0f );
 			float lightReflactance = std::max(0.0f, sinf((float)ROT / 512.0f));
 			float sunsetCoef = abs(cos((double)ROT / 512.0f)*1.5f);
 			engine.setBackground((sunsetCoef) * 0.25f * (lightReflactance + 0.25f), 

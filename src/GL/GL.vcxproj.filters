@@ -60,12 +60,21 @@
     <ClCompile Include="GeometryBasics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GeometryOrganizer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="default.vert">
       <Filter>Resource Files\Shaders</Filter>
     </None>
     <None Include="default.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="instance.vert">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="instance.frag">
       <Filter>Resource Files\Shaders</Filter>
     </None>
   </ItemGroup>
@@ -97,16 +106,16 @@
     <ClInclude Include="Texture.h">
       <Filter>Header Files\OBJ_H</Filter>
     </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="framework.h">
+    <ClInclude Include="precompile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GeometryBasics.h">
       <Filter>Header Files\OBJ_H</Filter>
     </ClInclude>
     <ClInclude Include="MultiArray.h">
+      <Filter>Header Files\OBJ_H</Filter>
+    </ClInclude>
+    <ClInclude Include="GeometryOrganizer.h">
       <Filter>Header Files\OBJ_H</Filter>
     </ClInclude>
   </ItemGroup>

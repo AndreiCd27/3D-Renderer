@@ -11,6 +11,7 @@ public:
 	VBO() { std::cout << "C -> VBO \n"; };
 
 	void Setup(std::vector<AVertex>& worldVertices, GLsizeiptr size, const int drawStyle);
+	void Setup(const AVertex* PTR, GLsizeiptr size, const int drawStyle);
 	void Bind();
 	void Unbind();
 	void Delete();

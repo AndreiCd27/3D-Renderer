@@ -1,7 +1,6 @@
 #pragma once
 
-#include "pch.h"
-#include "framework.h"
+#include "precompile.h"
 
 #include "shaderClass.h"
 #include "GeometryBasics.h"
@@ -27,18 +26,13 @@ public:
 	float speed = 0.2f;
 	float sensitivity = 0.1f;
 
-	GLuint camPosUniformLoc;
-	GLuint perspMat4Loc;
-	GLuint userPerspMat4Loc; //for first pass when drawing from SunCamera perspective in Texture
-	GLuint camYLoc;
-
 	// Camera constructor to set up initial values
 	Camera(AVector3 pos, float _Yaw, float _Pitch);
 
 	// Sends the camera perspective matrix to the Vertex Shader
 	void Matrix(float FOVdeg, float nearPlane, float farPlane, float aspectRatio, Shader& shader);
 
-	void LightMatrix(float shadowMapScale, Shader& shader, GLuint depthMatrixID, GLuint perspMatrixIDUser, bool TextureBias);
+	void LightMatrix(float shadowMapScale, Shader& shader, bool TextureBias);
 	// Handles camera inputs
 	void Inputs(GLFWwindow* window);
 };

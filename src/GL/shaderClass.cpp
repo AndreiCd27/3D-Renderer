@@ -1,7 +1,4 @@
 
-#include "pch.h"
-#include "framework.h"
-
 #include "shaderClass.h"
 
 // Reads a text file and outputs a string with everything in the text file
@@ -106,4 +103,21 @@ void Shader::compileErrors(unsigned int shader, const char* type)
 			std::cout << "SHADER_LINKING_ERROR for:" << type << "\n" << infoLog << std::endl;
 		}
 	}
+}
+
+const GLuint Shader::GetUniformLocation(const std::string& uniformName) {
+	if (UNIFORM_LOCATIONS.find(uniformName) == UNIFORM_LOCATIONS.end()) {
+		UNIFORM_LOCATIONS[uniformName] = glGetUniformLocation(ID, uniformName.c_str());
+	}
+	return UNIFORM_LOCATIONS[uniformName];
+}
+
+void Shader::SetUniformMatrix4by4(const std::string& uniformName, glm::mat4 Mat4) {
+	glUniformMatrix4fv(GetUniformLocation(uniformName), 1, GL_FALSE, glm::value_ptr(Mat4));
+}
+void Shader::SetUniformVector3(const std::string& uniformName, glm::vec3 Vec3) {
+	glUniform3f(GetUniformLocation(uniformName), Vec3.x, Vec3.y, Vec3.z);
+}
+void Shader::SetUniformVector3(const std::string& uniformName, AVector3 Vec3) {
+	glUniform3f(GetUniformLocation(uniformName), Vec3.x, Vec3.y, Vec3.z);
 }

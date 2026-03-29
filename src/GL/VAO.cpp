@@ -1,6 +1,4 @@
 
-#include "pch.h"
-#include "framework.h"
 
 #include "VAO.h"
 
@@ -8,9 +6,9 @@ void VAO::Setup() {
 	glGenVertexArrays(1, &ID);
 }
 
-void VAO::LinkVBO(VBO& VBO, GLuint layout, GLuint numComp, GLenum type, GLsizei stride, void* offset) {
+void VAO::LinkVBO(VBO& VBO, GLuint layout, GLuint numComp, GLenum type, GLsizei stride, bool NORMALIZED, void* offset) {
 	VBO.Bind();
-	glVertexAttribPointer(layout, numComp, type, GL_FALSE, stride, offset);
+	glVertexAttribPointer(layout, numComp, type, NORMALIZED, stride, offset);
 	glEnableVertexAttribArray(layout);
 	VBO.Unbind();
 }

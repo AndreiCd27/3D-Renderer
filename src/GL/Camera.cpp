@@ -1,7 +1,4 @@
 
-#include "pch.h"
-#include "framework.h"
-
 #include "Camera.h"
 #include "GeometryLoader.h"
 
@@ -29,15 +26,11 @@ void Camera::Matrix(float FOVdeg, float near, float far, float aspect, Shader& s
 
 	glm::mat4 perspMatrix = mat4Tuple.proj * mat4Tuple.view;
 
-	float xhigh = (float)this->Position.x; float xlow = (float)(this->Position.x - (double)xhigh);
-	float zhigh = (float)this->Position.z; float zlow = (float)(this->Position.z - (double)zhigh);
-
-	glUniform1f(this->camYLoc, this->Position.y);
-	glUniform4f(this->camPosUniformLoc, xlow, xhigh, zlow, zhigh);
-	glUniformMatrix4fv(this->perspMat4Loc, 1, GL_FALSE, glm::value_ptr(perspMatrix));
+	glUniform3f(shader.GetUniformLocation("CamPosition"), Position.x, Position.y, Position.z);
+	glUniformMatrix4fv(shader.GetUniformLocation("perspectiveMatrix"), 1, GL_FALSE, glm::value_ptr(perspMatrix));
 }
 
-void Camera::LightMatrix(float shadowMapScale, Shader& shader, GLuint lightMatrixID, GLuint perspMatrixIDUser, bool TextureBias) {
+void Camera::LightMatrix(float shadowMapScale, Shader& shader, bool TextureBias) {
 
 	//Light matrix uniformID is already inside SunCamera (see class Engine3D)
 
@@ -57,10 +50,16 @@ void Camera::LightMatrix(float shadowMapScale, Shader& shader, GLuint lightMatri
 			0.5, 0.5, 0.5, 1.0
 		);
 		depthMatrix = biasMatrix * depthMatrix;
-		glUniformMatrix4fv(lightMatrixID, 1, GL_FALSE, glm::value_ptr(depthMatrix));
+		glUniformMatrix4fv(shader.GetUniformLocation("lightPerspMatrix"), 
+			1, GL_FALSE, glm::value_ptr(depthMatrix)
+		);
 	} else {
-		glUniformMatrix4fv(lightMatrixID, 1, GL_FALSE, glm::value_ptr(depthMatrix));
-		glUniformMatrix4fv(this->userPerspMat4Loc, 1, GL_FALSE, glm::value_ptr(depthMatrix));
+		glUniformMatrix4fv(shader.GetUniformLocation("lightPerspMatrix"), 
+			1, GL_FALSE, glm::value_ptr(depthMatrix)
+		);
+		glUniformMatrix4fv(shader.GetUniformLocation("perspectiveMatrix"), 
+			1, GL_FALSE, glm::value_ptr(depthMatrix)
+		);
 		
 	}
 };

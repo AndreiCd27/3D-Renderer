@@ -160,6 +160,7 @@
     <ClCompile Include="Engine3D.cpp" />
     <ClCompile Include="GeometryBasics.cpp" />
     <ClCompile Include="GeometryLoader.cpp" />
+    <ClCompile Include="GeometryOrganizer.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="shaderClass.cpp" />
@@ -170,16 +171,18 @@
   <ItemGroup>
     <None Include="default.frag" />
     <None Include="default.vert" />
+    <None Include="instance.frag" />
+    <None Include="instance.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="EBO.h" />
     <ClInclude Include="Engine3D.h" />
-    <ClInclude Include="framework.h" />
     <ClInclude Include="GeometryBasics.h" />
     <ClInclude Include="GeometryLoader.h" />
+    <ClInclude Include="GeometryOrganizer.h" />
     <ClInclude Include="MultiArray.h" />
-    <ClInclude Include="pch.h" />
+    <ClInclude Include="precompile.h" />
     <ClInclude Include="shaderClass.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="stl_reader.h" />

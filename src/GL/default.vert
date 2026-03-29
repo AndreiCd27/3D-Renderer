@@ -1,30 +1,25 @@
 #version 330 core
-layout (location = 0) in vec4 aPosLH;
-layout (location = 1) in vec4 aColor;
-layout (location = 2) in vec4 aNormal; //only first 3 positions, 4th is MESH_ID (can be used later for UV coord)
+layout (location = 0) in vec3 APosition;
+layout (location = 1) in vec4 AColor;
+layout (location = 2) in vec3 ANormal;
+layout (location = 3) in vec2 AUV;
 
 uniform mat4 perspectiveMatrix;
-uniform vec4 camPosLH;
-uniform float camY;
+uniform vec3 CamPosition;
 
 uniform mat4 lightPerspMatrix;
 
-out vec3 color;
+out vec4 color;
 out vec3 normalVector;
 out vec4 vertexShadowPosition;
 
 void main()
 {
-	float relX = (aPosLH.y - camPosLH.y) + (aPosLH.x - camPosLH.x);
-    float relZ = (aPosLH.w - camPosLH.w) + (aPosLH.z - camPosLH.z);
-	gl_Position = perspectiveMatrix * vec4(relX, aColor.x - camY, relZ, 1.0);
+	gl_Position = perspectiveMatrix * vec4(APosition - CamPosition, 1.0);
 
-	float worldX = aPosLH.y + aPosLH.x;
-	float worldZ = aPosLH.w + aPosLH.z;
+	vertexShadowPosition = lightPerspMatrix * vec4(APosition, 1.0);
 
-	vertexShadowPosition = lightPerspMatrix * vec4(worldX, aColor.x, worldZ, 1.0);
+	color = AColor;
 
-	color = vec3(aColor.y, aColor.z, aColor.w);
-
-	normalVector = vec3(aNormal.x, aNormal.y, aNormal.z);
+	normalVector = ANormal;
 };
